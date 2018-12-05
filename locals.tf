@@ -11,8 +11,8 @@ locals {
 
   certificate_domain = "${lookup(var.load_balancer, "certificate_domain", "")}"
 
-  container_name = "${lookup(var.load_balancer, "container_name", "")}"
-  container_port = "${lookup(var.load_balancer, "container_port", 0)}"
+  container_name = "${lookup(var.load_balancer, "container_name", lookup(var.service_discovery, "container_name", ""))}"
+  container_port = "${lookup(var.load_balancer, "container_port", lookup(var.service_discovery, "container_port", 0))}"
 
   host_header  = "${lookup(var.load_balancer, "host_header", "")}"
   path_pattern = "${lookup(var.load_balancer, "path_pattern", "*")}"
@@ -34,6 +34,9 @@ locals {
 
 # service_discovery map
 locals {
+  sd_container_name = "${lookup(var.service_discovery, "container_name", lookup(var.load_balancer, "container_name", ""))}"
+  sd_container_port = "${lookup(var.service_discovery, "container_port", lookup(var.load_balancer, "container_port", 0))}"
+
   dns_routing_policy = "${lookup(var.service_discovery, "routing_policy", "MULTIVALUE")}"
   dns_ttl            = "${lookup(var.service_discovery, "ttl", "60")}"
   dns_type           = "${lookup(var.service_discovery, "type", "A")}"
@@ -47,12 +50,12 @@ locals {
   ports            = ["${compact(split(" ", lookup(var.network_configuration, "ports", "")))}"]
 
   # BUG: THIS IS A HACK TO WORK AROUND A TERRAFORM BUG...
-  ports_length    = "${length(replace(replace(lookup(var.network_configuration, "ports", ""), "/[0-9]+/", "1"), "/[^1]/", ""))}"
-  nc_security_groups = "${compact(split(" ", lookup(var.network_configuration, "security_groups", "")))}"
+  ports_length            = "${length(replace(replace(lookup(var.network_configuration, "ports", ""), "/[0-9]+/", "1"), "/[^1]/", ""))}"
+  nc_security_groups      = "${compact(split(" ", lookup(var.network_configuration, "security_groups", "")))}"
   nc_security_group_names = "${compact(split(" ", lookup(var.network_configuration, "security_group_names", "")))}"
-  subnets         = "${compact(split(" ", lookup(var.network_configuration, "subnets", "")))}"
-  tier            = "${lookup(var.network_configuration, "tier", "")}"
-  vpc             = "${lookup(var.network_configuration, "vpc", "")}"
+  subnets                 = "${compact(split(" ", lookup(var.network_configuration, "subnets", "")))}"
+  tier                    = "${lookup(var.network_configuration, "tier", "")}"
+  vpc                     = "${lookup(var.network_configuration, "vpc", "")}"
 }
 
 locals {
