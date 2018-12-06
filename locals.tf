@@ -26,8 +26,8 @@ locals {
 # task_definition map
 locals {
   container_definition_file = "${lookup(var.task_definition, "container_definition_file", "containers.json")}"
-  cpu                       = "${lookup(var.task_definition, "cpu", "256")}"
-  memory                    = "${lookup(var.task_definition, "memory", "512")}"
+  cpu                       = "${lookup(var.task_definition, "cpu", var.launch_type == "FARGATE" ? "256" : "")}"
+  memory                    = "${lookup(var.task_definition, "memory", var.launch_type == "FARGATE" ? "512" : "0")}"
   network_mode              = "${lookup(var.task_definition, "network_mode", "awsvpc")}"
   task_role_arn             = "${lookup(var.task_definition, "task_role_arn", "")}"
 }

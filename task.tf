@@ -11,12 +11,11 @@
 # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_size
 
 locals {
-  task_definition_arn = "${element(concat(aws_ecs_task_definition.fargate.*.arn,
-                           aws_ecs_task_definition.ec2.*.arn,  list("")), 0)}"
+  task_definition_arn = "${element(concat(aws_ecs_task_definition.default.*.arn, list("")), 0)}"
 }
 
-resource "aws_ecs_task_definition" "fargate" {
-  count = "${var.task_definition_arn == "" && var.launch_type == "FARGATE" ? 1 : 0}"
+resource "aws_ecs_task_definition" "default" {
+  count = "${var.task_definition_arn == "" ? 1 : 0}"
 
   family                = "${var.name}"
   container_definitions = "${file(local.container_definition_file)}"
@@ -29,20 +28,5 @@ resource "aws_ecs_task_definition" "fargate" {
 
   cpu                      = "${local.cpu}"
   memory                   = "${local.memory}"
-  requires_compatibilities = ["FARGATE"]
-}
-
-resource "aws_ecs_task_definition" "ec2" {
-  count = "${var.task_definition_arn == "" && var.launch_type == "EC2" ? 1 : 0}"
-
-  family                = "${var.name}"
-  container_definitions = "${file(local.container_definition_file)}"
-  task_role_arn         = "${local.task_role_arn}"
-  execution_role_arn    = "${format("arn:aws:iam::%s:role/ecsTaskExecutionRole",
-                                 data.aws_caller_identity.current.account_id)}"
-
-  network_mode = "${local.network_mode}"
-  volume       = "${var.volume}"
-
-  requires_compatibilities = ["EC2"]
+  requires_compatibilities = ["${var.launch_type}"]
 }
