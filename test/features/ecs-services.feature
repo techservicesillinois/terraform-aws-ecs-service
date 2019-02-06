@@ -1,10 +1,16 @@
 Feature: We are able to instantiate all aws_ecs_service resources
     Background: Start with ecs-service module
+        Given the following variables
+            | key              | value                              |
+            #------------------|------------------------------------|
+            | ecs service name | delete-me-behave-tf-$(RANDOM:10)   |
+            | cluster          | behave-test                        |
+        
         Given terraform module 'ecs-service'
             | varname | value                              |
             #---------|------------------------------------|
-            | name    | "delete-me-behave-tf-$(RANDOM:10)" |
-            | cluster | "behave-test"                      |
+            | name    | "${var.ecs service name}"          |
+            | cluster | "${var.cluster}"                   |
         
         Given terraform file 'containers.json'
             """
@@ -27,7 +33,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
             }]
             """
     
-    
+    @wip
     Scenario: Instance of 'aws_ecs_service' 'awsvpc_all'
               Additionally:
                 (A) create 'aws_alb_listener_rule' 'set_priority'
@@ -103,6 +109,12 @@ Feature: We are able to instantiate all aws_ecs_service resources
             |        | aws_service_discovery_service | health_check_custom |       |
         
         When we run terraform apply
+        
+        Then aws ECS has services in a steady state
+            |key       | value                   |
+            #----------|-------------------------|
+            | services | ${var.ecs service name} |
+            | cluster  | ${var.cluster}          |
     
     
     Scenario: Instance of 'aws_ecs_service' 'all'
