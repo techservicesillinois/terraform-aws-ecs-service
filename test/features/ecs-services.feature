@@ -33,7 +33,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
             }]
             """
     
-    @wip
+    
     Scenario: Instance of 'aws_ecs_service' 'awsvpc_all'
               Additionally:
                 (A) create 'aws_alb_listener_rule' 'set_priority'
@@ -116,7 +116,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | services | ${var.ecs service name} |
             | cluster  | ${var.cluster}          |
     
-    
+    @wip #FAILING
     Scenario: Instance of 'aws_ecs_service' 'all'
         Given terraform tfvars
             | varname     | value |
@@ -155,6 +155,13 @@ Feature: We are able to instantiate all aws_ecs_service resources
             |        | aws_service_discovery_service | default |       |
         
         When we run terraform apply
+        
+        Then aws ECS has services in a steady state
+            |key       | value                   |
+            #----------|-------------------------|
+            | services | ${var.ecs service name} |
+            | cluster  | ${var.cluster}          |
+            | timeout  | 00:30                   |
     
     
     Scenario: Instance of 'aws_ecs_service' 'awsvpc'
@@ -165,7 +172,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | vpc              | "techservicesastest2-vpc" |
             | tier             | "public"                  |
             | assign_public_ip | "true"                    |
-       
+        
         Given terraform map 'task_definition'
             | varname        | value     |
             #----------------|-----------|
@@ -185,6 +192,12 @@ Feature: We are able to instantiate all aws_ecs_service resources
             |        | aws_security_group_rule | service_icmp |       |
         
         When we run terraform apply
+        
+        Then aws ECS has services in a steady state
+            |key       | value                   |
+            #----------|-------------------------|
+            | services | ${var.ecs service name} |
+            | cluster  | ${var.cluster}          |
     
     
     Scenario: Instance of 'aws_ecs_service' 'awsvpc_lb'
@@ -228,8 +241,14 @@ Feature: We are able to instantiate all aws_ecs_service resources
             |        | aws_security_group_rule | service_out   |       |
         
         When we run terraform apply
+        
+        Then aws ECS has services in a steady state
+            |key       | value                   |
+            #----------|-------------------------|
+            | services | ${var.ecs service name} |
+            | cluster  | ${var.cluster}          |
     
-    
+    #@wip # FAILING: pending count is not 0: 1
     Scenario: Instance of 'aws_ecs_service' 'awsvpc_sd'
         Given terraform map 'network_configuration'
             | varname          | value                     |
@@ -264,8 +283,15 @@ Feature: We are able to instantiate all aws_ecs_service resources
             |        | aws_service_discovery_service | default      |       |
         
         When we run terraform apply
+        
+        Then aws ECS has services in a steady state
+            |key       | value                   |
+            #----------|-------------------------|
+            | services | ${var.ecs service name} |
+            | cluster  | ${var.cluster}          |
+            | timeout  | 00:30                   |
     
-    
+    #@wip # FAILING: desiredCount: 1 is not runningCount: 0
     Scenario: Instance of 'aws_ecs_service' 'default'
         Given terraform tfvars
             | varname     | value |
@@ -288,8 +314,15 @@ Feature: We are able to instantiate all aws_ecs_service resources
             |        | aws_ecs_task_definition | default |       |
         
         When we run terraform apply
+        
+        Then aws ECS has services in a steady state
+            |key       | value                   |
+            #----------|-------------------------|
+            | services | ${var.ecs service name} |
+            | cluster  | ${var.cluster}          |
+            | timeout  | 00:30                   |
     
-    
+    #@wip # FAILING: desiredCount: 1 is not runningCount: 0
     Scenario: Instance of 'aws_ecs_service' 'lb'
         Given terraform tfvars
             | varname     | value |
@@ -325,8 +358,15 @@ Feature: We are able to instantiate all aws_ecs_service resources
             |        | aws_lb_target_group         | default |       |
         
         When we run terraform apply
+        
+        Then aws ECS has services in a steady state
+            |key       | value                   |
+            #----------|-------------------------|
+            | services | ${var.ecs service name} |
+            | cluster  | ${var.cluster}          |
+            | timeout  | 00:30                   |
     
-    
+    #@wip #FAILING: desiredCount: 1 is not runningCount: 0
     Scenario: Instance of 'aws_ecs_service' 'lb' PRIVATE
               - Proving that service discovery is causing the errors of other scenarios
                 + 'aws_ecs_service' 'all'
@@ -363,8 +403,15 @@ Feature: We are able to instantiate all aws_ecs_service resources
             |        | aws_lb_target_group     | default |       |
         
         When we run terraform apply
+        
+        Then aws ECS has services in a steady state
+            |key       | value                   |
+            #----------|-------------------------|
+            | services | ${var.ecs service name} |
+            | cluster  | ${var.cluster}          |
+            | timeout  | 00:30                   |
     
-    
+    #@wip # FAILING: desiredCount: 1 is not runningCount: 0
     Scenario: Instance of 'aws_ecs_service' 'sd'
         Given terraform tfvars
             | varname     | value |
@@ -394,8 +441,15 @@ Feature: We are able to instantiate all aws_ecs_service resources
             |        | aws_service_discovery_service | default |       |
         
         When we run terraform apply
+        
+        Then aws ECS has services in a steady state
+            |key       | value                   |
+            #----------|-------------------------|
+            | services | ${var.ecs service name} |
+            | cluster  | ${var.cluster}          |
+            | timeout  | 00:30                   |
     
-    
+    #@wip # FAILING: desiredCount: 1 is not runningCount: 0
     Scenario: Instance of 'aws_service_discovery_service' 'health_check'
               Health check config can only be applied to a public namespace.
         Given terraform tfvars
@@ -441,11 +495,20 @@ Feature: We are able to instantiate all aws_ecs_service resources
             |        | aws_service_discovery_service | health_check |       |
         
         When we run terraform apply
+        
+        Then aws ECS has services in a steady state
+            |key       | value                   |
+            #----------|-------------------------|
+            | services | ${var.ecs service name} |
+            | cluster  | ${var.cluster}          |
+            | timeout  | 00:30                   |
     
     
     Scenario: Instance of 'aws_service_discovery_service' 'health_check_and_health_check_custom'
               - This configuration is not currently supported by AWS, cannot apply
               Health check config can only be applied to a public namespace.
+        Given we expect this scenario to fail
+        
         Given terraform tfvars
             | varname     | value |
             #-------------|-------|
@@ -496,4 +559,4 @@ Feature: We are able to instantiate all aws_ecs_service resources
             |        | aws_service_discovery_service | health_check_and_health_check_custom |       |
         
         # Apply fails. Amazon support issue.
-        #When we run terraform apply
+        When we run terraform apply

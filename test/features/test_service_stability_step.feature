@@ -42,7 +42,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
             }]
             """
     
-    #@wip
+    
     Scenario: Instance of 'aws_ecs_service' 'awsvpc_all'
         
         Given terraform map 'load_balancer'
@@ -81,8 +81,6 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | health check required | False                   |
         
         
-    @wip
-    Scenario: 'aws_ecs_service' 'awsvpc_all' failure -> non-existent image
         Given we expect this scenario to fail
         Given terraform file 'containers.json'
             """
@@ -141,7 +139,6 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | max stopped tasks | 1                       |
         
         
-    @wip
     Scenario: 'aws_ecs_service' 'awsvpc_all' failure -> bad health check
         Given we expect this scenario to fail
         Given terraform file 'containers.json'
@@ -210,7 +207,6 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | max stopped tasks | 1                       |
         
         
-    @wip
     Scenario: 'aws_ecs_service' 'awsvpc_all' failure -> bad container (entrypoint)
         Given we expect this scenario to fail
         Given terraform file 'containers.json'
