@@ -116,7 +116,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | services | ${var.ecs service name} |
             | cluster  | ${var.cluster}          |
     
-    @wip #FAILING
+    #@wip #FAILING
     Scenario: Instance of 'aws_ecs_service' 'all'
         Given terraform tfvars
             | varname     | value |
@@ -156,6 +156,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
         
         When we run terraform apply
         
+        Given we expect this scenario to fail
         Then aws ECS has services in a steady state
             |key       | value                   |
             #----------|-------------------------|
@@ -284,6 +285,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
         
         When we run terraform apply
         
+        Given we expect this scenario to fail
         Then aws ECS has services in a steady state
             |key       | value                   |
             #----------|-------------------------|
@@ -315,6 +317,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
         
         When we run terraform apply
         
+        Given we expect this scenario to fail
         Then aws ECS has services in a steady state
             |key       | value                   |
             #----------|-------------------------|
@@ -359,6 +362,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
         
         When we run terraform apply
         
+        Given we expect this scenario to fail
         Then aws ECS has services in a steady state
             |key       | value                   |
             #----------|-------------------------|
@@ -404,6 +408,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
         
         When we run terraform apply
         
+        Given we expect this scenario to fail
         Then aws ECS has services in a steady state
             |key       | value                   |
             #----------|-------------------------|
@@ -442,6 +447,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
         
         When we run terraform apply
         
+        Given we expect this scenario to fail
         Then aws ECS has services in a steady state
             |key       | value                   |
             #----------|-------------------------|
@@ -496,6 +502,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
         
         When we run terraform apply
         
+        Given we expect this scenario to fail
         Then aws ECS has services in a steady state
             |key       | value                   |
             #----------|-------------------------|
@@ -507,7 +514,6 @@ Feature: We are able to instantiate all aws_ecs_service resources
     Scenario: Instance of 'aws_service_discovery_service' 'health_check_and_health_check_custom'
               - This configuration is not currently supported by AWS, cannot apply
               Health check config can only be applied to a public namespace.
-        Given we expect this scenario to fail
         
         Given terraform tfvars
             | varname     | value |
@@ -559,4 +565,5 @@ Feature: We are able to instantiate all aws_ecs_service resources
             |        | aws_service_discovery_service | health_check_and_health_check_custom |       |
         
         # Apply fails. Amazon support issue.
+        Given we expect this scenario to fail
         When we run terraform apply
