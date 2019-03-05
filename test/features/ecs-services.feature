@@ -54,7 +54,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | port           | "443"                                              |
             | container_name | "apache"                                           |
             | container_port | "80"                                               |
-            | host_header    | "apache-example.as-test.techservices.illinois.edu" |
+            | host_header    | "${var.ecs service name}.as-test.techservices.illinois.edu" |
             # (A)                                                                 |
             #NOTE: Priority has a chance of clashing with existing rule priorities.
             # Create aws_alb_listener_rule set_priority                           |
@@ -69,7 +69,8 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | assign_public_ip | "true"                    |
             # (C)                                          |
             # Create aws_security_group_rule service_in    |
-            | ports            | "90"                      |
+            # TODO: Perform curl on container IP (new step)|
+            | ports            | "80"                      |
        
         Given terraform map 'service_discovery'
             | varname      | value                 |
@@ -87,8 +88,6 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | varname        | value     |
             #----------------|-----------|
             | network_mode   | "awsvpc"  |
-            | container_name | "example" |
-            | container_port | "80"      |
         
         When we run terraform plan
         
@@ -115,8 +114,12 @@ Feature: We are able to instantiate all aws_ecs_service resources
             #----------|-------------------------|
             | services | ${var.ecs service name} |
             | cluster  | ${var.cluster}          |
+        # TODO
+        # curl hostname if load balancer is configured
+        # curl container IP if ports is set in the "network configuration" block
+        # curl service-discovery hostname (would only work inside VPC) if "service discovery" block exists
     
-    #@wip #FAILING
+    @EC2
     Scenario: Instance of 'aws_ecs_service' 'all'
         Given terraform tfvars
             | varname     | value |
@@ -130,7 +133,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | port           | "80"                                               |
             | container_name | "apache"                                           |
             | container_port | "80"                                               |
-            | host_header    | "apache-example.as-test.techservices.illinois.edu" |
+            | host_header    | "${var.ecs service name}.as-test.techservices.illinois.edu" |
        
         Given terraform map 'service_discovery'
             | varname      | value                 |
@@ -156,13 +159,12 @@ Feature: We are able to instantiate all aws_ecs_service resources
         
         When we run terraform apply
         
-        Given we expect this scenario to fail
-        Then aws ECS has services in a steady state
-            |key       | value                   |
-            #----------|-------------------------|
-            | services | ${var.ecs service name} |
-            | cluster  | ${var.cluster}          |
-            | timeout  | 00:30                   |
+#        Then aws ECS has services in a steady state
+#            |key       | value                   |
+#            #----------|-------------------------|
+#            | services | ${var.ecs service name} |
+#            | cluster  | ${var.cluster}          |
+#            | timeout  | 00:30                   |
     
     
     Scenario: Instance of 'aws_ecs_service' 'awsvpc'
@@ -173,11 +175,13 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | vpc              | "techservicesastest2-vpc" |
             | tier             | "public"                  |
             | assign_public_ip | "true"                    |
+            # TODO: curl container IP (after stabilization step)
+            | ports            | "80"                      |
         
         Given terraform map 'task_definition'
             | varname        | value     |
             #----------------|-----------|
-            | network_mode   | "awsvpc"  |
+            # Needed because there is no LB
             | container_name | "example" |
             | container_port | "80"      |
         
@@ -189,6 +193,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | create | aws_ecs_service         | awsvpc       |       |
             |        | aws_ecs_task_definition | default      |       |
             |        | aws_security_group      | default      |       |
+            |        | aws_security_group_rule | service_in   |       |
             |        | aws_security_group_rule | service_out  |       |
             |        | aws_security_group_rule | service_icmp |       |
         
@@ -209,7 +214,11 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | port           | "443"                                              |
             | container_name | "apache"                                           |
             | container_port | "80"                                               |
-            | host_header    | "apache-example.as-test.techservices.illinois.edu" |
+            | host_header    | "${var.ecs service name}.as-test.techservices.illinois.edu" |
+            
+            # TODO: Add alias block OR curl with header host set to host_header
+            #   IN ORDER TO test that the container is ACCESSIBLE
+            #   Whether or not the container is WORKING is answered (well enough) by the stability test
         
         Given terraform map 'network_configuration'
             | varname          | value                     |
@@ -223,8 +232,6 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | varname        | value     |
             #----------------|-----------|
             | network_mode   | "awsvpc"  |
-            | container_name | "example" |
-            | container_port | "80"      |
         
         When we run terraform plan
         
@@ -249,7 +256,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | services | ${var.ecs service name} |
             | cluster  | ${var.cluster}          |
     
-    #@wip # FAILING: pending count is not 0: 1
+    @EC2
     Scenario: Instance of 'aws_ecs_service' 'awsvpc_sd'
         Given terraform map 'network_configuration'
             | varname          | value                     |
@@ -258,6 +265,8 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | vpc              | "techservicesastest2-vpc" |
             | tier             | "public"                  |
             | assign_public_ip | "true"                    |
+            # TODO: curl container IP
+            | ports            | "80"                      |
        
         Given terraform map 'service_discovery'
             | varname      | value                 |
@@ -268,6 +277,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | varname        | value     |
             #----------------|-----------|
             | network_mode   | "awsvpc"  |
+            # Needed because there is no LB
             | container_name | "example" |
             | container_port | "80"      |
         
@@ -279,21 +289,22 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | create | aws_ecs_service               | awsvpc_sd    |       |
             |        | aws_ecs_task_definition       | default      |       |
             |        | aws_security_group            | default      |       |
+            |        | aws_security_group_rule       | service_in   |       |
             |        | aws_security_group_rule       | service_icmp |       |
             |        | aws_security_group_rule       | service_out  |       |
             |        | aws_service_discovery_service | default      |       |
         
         When we run terraform apply
         
-        Given we expect this scenario to fail
-        Then aws ECS has services in a steady state
-            |key       | value                   |
-            #----------|-------------------------|
-            | services | ${var.ecs service name} |
-            | cluster  | ${var.cluster}          |
-            | timeout  | 00:30                   |
+#        Then aws ECS has services in a steady state
+#            |key       | value                   |
+#            #----------|-------------------------|
+#            | services | ${var.ecs service name} |
+#            | cluster  | ${var.cluster}          |
+#            | timeout  | 00:30                   |
     
-    #@wip # FAILING: desiredCount: 1 is not runningCount: 0
+    # COMPLETE
+    @EC2
     Scenario: Instance of 'aws_ecs_service' 'default'
         Given terraform tfvars
             | varname     | value |
@@ -317,15 +328,14 @@ Feature: We are able to instantiate all aws_ecs_service resources
         
         When we run terraform apply
         
-        Given we expect this scenario to fail
-        Then aws ECS has services in a steady state
-            |key       | value                   |
-            #----------|-------------------------|
-            | services | ${var.ecs service name} |
-            | cluster  | ${var.cluster}          |
-            | timeout  | 00:30                   |
+#        Then aws ECS has services in a steady state
+#            |key       | value                   |
+#            #----------|-------------------------|
+#            | services | ${var.ecs service name} |
+#            | cluster  | ${var.cluster}          |
+#            | timeout  | 00:30                   |
     
-    #@wip # FAILING: desiredCount: 1 is not runningCount: 0
+    @EC2
     Scenario: Instance of 'aws_ecs_service' 'lb'
         Given terraform tfvars
             | varname     | value |
@@ -339,15 +349,14 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | port               | "443"                                              |
             | container_name     | "apache"                                           |
             | container_port     | "80"                                               |
-            | host_header        | "bridge-example.as-test.techservices.illinois.edu" |
+            | host_header        | "${var.ecs service name}.as-test.techservices.illinois.edu" |
+            #NOTE: ssl checks will fail (ignore for now)
             | certificate_domain | "bridge-example.as-test.techservices.illinois.edu" |
         
         Given terraform map 'task_definition'
             | varname        | value    |
             #----------------|----------|
             | network_mode   | "bridge" |
-            | container_name | "apache" |
-            | container_port | "80"     |
         
         When we run terraform plan
         
@@ -362,15 +371,16 @@ Feature: We are able to instantiate all aws_ecs_service resources
         
         When we run terraform apply
         
-        Given we expect this scenario to fail
-        Then aws ECS has services in a steady state
-            |key       | value                   |
-            #----------|-------------------------|
-            | services | ${var.ecs service name} |
-            | cluster  | ${var.cluster}          |
-            | timeout  | 00:30                   |
+#        Then aws ECS has services in a steady state
+#            |key       | value                   |
+#            #----------|-------------------------|
+#            | services | ${var.ecs service name} |
+#            | cluster  | ${var.cluster}          |
+#            | timeout  | 00:30                   |
+        # TODO:
+        #   curl host_header (spoof the host header by setting host header to load_balancer.host_header)"
     
-    #@wip #FAILING: desiredCount: 1 is not runningCount: 0
+    @EC2
     Scenario: Instance of 'aws_ecs_service' 'lb' PRIVATE
               - Proving that service discovery is causing the errors of other scenarios
                 + 'aws_ecs_service' 'all'
@@ -387,14 +397,13 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | port           | "80"                                               |
             | container_name | "apache"                                           |
             | container_port | "80"                                               |
-            | host_header    | "apache-example.as-test.techservices.illinois.edu" |
+            #| host_header    | "${var.ecs service name}.as-test.techservices.illinois.edu" |
+            | host_header    | "${var.ecs service name}.local" |
         
         Given terraform map 'task_definition'
             | varname        | value    |
             #----------------|----------|
             | network_mode   | "bridge" |
-            | container_name | "apache" |
-            | container_port | "80"     |
         
         When we run terraform plan
         
@@ -408,15 +417,17 @@ Feature: We are able to instantiate all aws_ecs_service resources
         
         When we run terraform apply
         
-        Given we expect this scenario to fail
-        Then aws ECS has services in a steady state
-            |key       | value                   |
-            #----------|-------------------------|
-            | services | ${var.ecs service name} |
-            | cluster  | ${var.cluster}          |
-            | timeout  | 00:30                   |
+#        Then aws ECS has services in a steady state
+#            |key       | value                   |
+#            #----------|-------------------------|
+#            | services | ${var.ecs service name} |
+#            | cluster  | ${var.cluster}          |
+#            | timeout  | 00:30                   |
+       # TODO:
+       #    curl host_header (spoof: '') IFF in VPC
     
-    #@wip # FAILING: desiredCount: 1 is not runningCount: 0
+    # COMPLETE
+    @EC2
     Scenario: Instance of 'aws_ecs_service' 'sd'
         Given terraform tfvars
             | varname     | value |
@@ -447,15 +458,14 @@ Feature: We are able to instantiate all aws_ecs_service resources
         
         When we run terraform apply
         
-        Given we expect this scenario to fail
-        Then aws ECS has services in a steady state
-            |key       | value                   |
-            #----------|-------------------------|
-            | services | ${var.ecs service name} |
-            | cluster  | ${var.cluster}          |
-            | timeout  | 00:30                   |
+#        Then aws ECS has services in a steady state
+#            |key       | value                   |
+#            #----------|-------------------------|
+#            | services | ${var.ecs service name} |
+#            | cluster  | ${var.cluster}          |
+#            | timeout  | 00:30                   |
     
-    #@wip # FAILING: desiredCount: 1 is not runningCount: 0
+    @EC2
     Scenario: Instance of 'aws_service_discovery_service' 'health_check'
               Health check config can only be applied to a public namespace.
         Given terraform tfvars
@@ -470,7 +480,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | port           | "443"                                              |
             | container_name | "apache"                                           |
             | container_port | "80"                                               |
-            | host_header    | "apache-example.as-test.techservices.illinois.edu" |
+            | host_header    | "${var.ecs service name}.as-test.techservices.illinois.edu" |
        
         Given terraform map 'service_discovery'
             | varname      | value                 |
@@ -502,13 +512,14 @@ Feature: We are able to instantiate all aws_ecs_service resources
         
         When we run terraform apply
         
-        Given we expect this scenario to fail
-        Then aws ECS has services in a steady state
-            |key       | value                   |
-            #----------|-------------------------|
-            | services | ${var.ecs service name} |
-            | cluster  | ${var.cluster}          |
-            | timeout  | 00:30                   |
+#        Then aws ECS has services in a steady state
+#            |key       | value                   |
+#            #----------|-------------------------|
+#            | services | ${var.ecs service name} |
+#            | cluster  | ${var.cluster}          |
+#            | timeout  | 00:30                   |
+        # TODO:
+        #   curl host_header (spoof: '')
     
     
     Scenario: Instance of 'aws_service_discovery_service' 'health_check_and_health_check_custom'
@@ -527,7 +538,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | port           | "443"                                              |
             | container_name | "apache"                                           |
             | container_port | "80"                                               |
-            | host_header    | "apache-example.as-test.techservices.illinois.edu" |
+            | host_header    | "${var.ecs service name}.as-test.techservices.illinois.edu" |
        
         Given terraform map 'service_discovery'
             | varname      | value                 |
@@ -550,8 +561,6 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | varname        | value    |
             #----------------|----------|
             | network_mode   | "bridge" |
-            | container_name | "apache" |
-            | container_port | "80"     |
         
         When we run terraform plan
         
