@@ -53,7 +53,7 @@ definition](#task_definition) block.
 ### Simple Fargate service on a public subnet
 ```hcl
 module "service_name" {
-  source = "git@github.com:cites-illinois/as-aws-modules//ecs-service"
+  source = "git@github.com:techservicesillinois/terraform-aws-ecs-service//"
 
   name = "service_name"
 
@@ -81,7 +81,7 @@ module "service_name" {
 ### Simple Fargate service on a private subnet with a NAT gateway with service discovery
 ```hcl
 module "service_name" {
-  source = "git@github.com:cites-illinois/as-aws-modules//ecs-service"
+  source = "git@github.com:techservicesillinois/terraform-aws-ecs-service//"
 
   name  = "service_name"
 
@@ -100,7 +100,7 @@ module "service_name" {
 ### Simple ECS service in bridge mode
 ```hcl
 module "service_name" {
-  source = "git@github.com:cites-illinois/as-aws-modules//ecs-service"
+  source = "git@github.com:techservicesillinois/terraform-aws-ecs-service//"
 
   name        = "service_name"
   launch_type = "EC2"
@@ -127,7 +127,7 @@ module "service_name" {
 ### ECS service using an externally defined task definition
 ```hcl
 module "service_name" {
-  source = "git@github.com:cites-illinois/as-aws-modules//ecs-service"
+  source = "git@github.com:techservicesillinois/terraform-aws-ecs-service//"
 
   name                = "service_name"
   cluster             = "cluster_name"
@@ -162,6 +162,33 @@ module "service_name" {
       expression = "attribute:ecs.availability-zone in [us-west-2a, us-west-2b]"
     }
   ]
+}
+```
+### Configure autoscaling policy and cloudwatch alarms for ECS service
+```hcl
+autoscale {
+  autoscale_max_capacity        = "5"
+  metric_name                   = "CPUUtilization"
+  datapoints_to_alarm           = "1" 
+  evaluation_periods            = "1"
+  period                        = "60"
+  cooldown                      = "60"
+  adjustment_type               = "ChangeInCapacity"
+
+  ### Cloudwatch Alaram Scale up and Scale down ###
+  scale_up_threshold            = "70"
+  scale_down_threshold          = "40"
+
+  ### AutoScale Policy Scale up ###
+  scale_up_comparison_operator   = "GreaterThanOrEqualToThreshold"
+  scale_up_interval_lower_bound  = "1"
+  scale_up_adjustment            = "1"
+  
+  ### AutoScale Policy Scale down ###
+  scale_down_comparison_operator   = "LessThanThreshold"
+  scale_down_interval_lower_bound  = "0"
+  scale_down_adjustment            = "-1"
+
 }
 ```
 
@@ -243,6 +270,63 @@ contains settings for ECS managed health checks.
 
 * `alias` – (Optional) An [alias](#alias) block used to define a Route 53 alias record
 that points to the load balancer. Requires that a `load_balancer` block is definied.
+
+* `autoscale` – (Optional) An [autoscale](#autoscale) block used to create an autoscaling configuration. Requires that a `autoscale` block is defined. Learn more about [ECS autoscaling](https://docs.aws.amazon.com/autoscaling/application/userguide/application-auto-scaling-step-scaling-policies.html).
+
+`autoscale`
+----------
+
+An `autoscale` block supports the following for autoscale up and down policies:
+
+* `autoscale_scale_up` - (Optional) The name of the autoscaling policy for scale up. Default name is ('service name'-up) 
+
+* `autoscale_scale_down` - (Optional) The name of the autoscaling policy for scale down. Default name is ('service name'-down) 
+
+* `adjustment_type` - (Required) Specifies whether the adjustment is an absolute number or a percentage of the current capacity. Valid values are ChangeInCapacity, ExactCapacity, and PercentChangeInCapacity.
+
+* `cooldown` - (Required) Seconds between scaling actions.
+
+* `aggregation_type` - (Optional) The aggregation type for the policy's metrics. Valid values are "Minimum", "Maximum", and "Average". Default is "Average"
+
+* `scale_up_interval_lower_bound` - (Optional) Difference between the alarm `threshold` and the CloudWatch metric. For scale down the default is -infinity if not specified. 
+
+* `scale_down_interval_upper_bound` - (Optional) Difference between the alarm `threshold` and the CloudWatch metric. For scale up the default is infinity if not specified.
+
+* `scale_up_adjustment` - (Required) The number of members by which to scale, when the adjustment bounds are breached. A positive value scales up.
+
+* `scale_down_adjustment` - (Required) The number of members by which to scale, when the adjustment bounds are breached. A negative value scales down.
+
+The `ecs target` configuration for scale up and down needs the following:
+
+* `autoscale_max_capacity` - (Optional) The maximum number of instances to run. Defaults to 5.
+
+* `service_desired_count` - (Optional) The minimum number of instances of task definition to run. Defaults to 1.
+
+The `cloudwatch alarm` configuration for scale up and down needs the following:
+
+* `autoscale_scale_up` - (Optional) The name of the cloudwatch metric alarm for scale up. Default name is ('service name' up)
+
+* `autoscale_scale_down` - (Optional) The name of the cloudwatch metric alarm for scale down. Default name is ('service name' down) 
+
+* `scale_up_comparison_operator` - (Required) The arithmetic operation to use when comparing the specified `statistic` and `threshold` for scale up. The specified Statistic value is used as the first operand. supported are, GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold, LessThanOrEqualToThreshold.
+
+* `scale_down_comparison_operator` - (Required) The arithmetic operation to use when comparing the specified `statistic` and `threshold` for scale down. The specified Statistic value is used as the first operand. supported are, GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold, LessThanOrEqualToThreshold.
+
+* `scale_up_threshold` - (Required) The value against which the specified `statistic` is compared for scale up.
+
+* `scale_down_threshold` - (Required) The value against which the specified `statistic` is compared for scale down.
+
+* `evaluation_periods` - (Required) The number of periods over which data is compared to the specified `threshold`.
+
+* `metric_name` - (Required) The name of the metric. For ECS Service predefined metrics are CPUUtilization and MemoryUtilization.
+
+* `period` - (Optional) The period in seconds over which the specified statistic is applied.
+
+* `statistic` - (Optional) The statistic to apply to the alarm's associated metric. supported are: SampleCount, Average, Sum, Minimum, Maximum. Defaults to Average.
+
+* `datapoints_to_alarm` - (Optional) The Number of times the metric reaches the specified threshold to trigger an alarm. Note: `datapoints_to_alarm` must be less than or equal to the `evaluation_periods`.
+
+* `dimensions` - (Optional) The dimensions for the alarm's associated metric. The available dimensions for ECS service are ClusterName and ServiceName. 
 
 `alias`
 -------

@@ -134,3 +134,12 @@ variable "alias" {
   description = "Route 53 alias block"
   default     = {}
 }
+
+
+##########################################################################
+# AutoScaling Configuration
+##########################################################################
+variable "autoscale" {
+  description = "An autoscale block"
+  default     = {}
+}

@@ -47,14 +47,20 @@ locals {
   ports            = ["${compact(split(" ", lookup(var.network_configuration, "ports", "")))}"]
 
   # BUG: THIS IS A HACK TO WORK AROUND A TERRAFORM BUG...
-  ports_length    = "${length(replace(replace(lookup(var.network_configuration, "ports", ""), "/[0-9]+/", "1"), "/[^1]/", ""))}"
-  nc_security_groups = "${compact(split(" ", lookup(var.network_configuration, "security_groups", "")))}"
+  ports_length            = "${length(replace(replace(lookup(var.network_configuration, "ports", ""), "/[0-9]+/", "1"), "/[^1]/", ""))}"
+  nc_security_groups      = "${compact(split(" ", lookup(var.network_configuration, "security_groups", "")))}"
   nc_security_group_names = "${compact(split(" ", lookup(var.network_configuration, "security_group_names", "")))}"
-  subnets         = "${compact(split(" ", lookup(var.network_configuration, "subnets", "")))}"
-  tier            = "${lookup(var.network_configuration, "tier", "")}"
-  vpc             = "${lookup(var.network_configuration, "vpc", "")}"
+  subnets                 = "${compact(split(" ", lookup(var.network_configuration, "subnets", "")))}"
+  tier                    = "${lookup(var.network_configuration, "tier", "")}"
+  vpc                     = "${lookup(var.network_configuration, "vpc", "")}"
 }
 
 locals {
   security_groups = "${distinct(concat(aws_security_group.default.*.id, data.aws_security_group.selected.*.id, local.nc_security_groups))}"
+}
+
+# autoscaling
+locals {
+  scale_down_name = "${lookup(var.autoscale, "autoscale_scale_down", "${var.name}-down")}"
+  scale_up_name   = "${lookup(var.autoscale, "autoscale_scale_up",   "${var.name}-up")}"
 }
