@@ -33,7 +33,6 @@ data "aws_security_group" "selected" {
   name  = "${local.nc_security_group_names[count.index]}"
 }
 
-
 ## Network data sources
 
 data aws_subnet "selected" {
