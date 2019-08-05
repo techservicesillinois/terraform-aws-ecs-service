@@ -43,7 +43,8 @@ locals {
 
 # network_configuration map
 locals {
-  assign_public_ip = "${lookup(var.network_configuration, "assign_public_ip", "false")}"
+  # assign_public_ip = "${lookup(var.network_configuration, "assign_public_ip", false)}"
+  assign_public_ip = false
   ports            = ["${compact(split(" ", lookup(var.network_configuration, "ports", "")))}"]
 
   # BUG: THIS IS A HACK TO WORK AROUND A TERRAFORM BUG...
@@ -63,4 +64,12 @@ locals {
 locals {
   scale_down_name = "${lookup(var.autoscale, "autoscale_scale_down", "${var.name}-down")}"
   scale_up_name   = "${lookup(var.autoscale, "autoscale_scale_up",   "${var.name}-up")}"
+}
+
+output "var_nc" {
+  value = "${var.network_configuration}"
+}
+
+output "foo" {
+  value = "${lookup(var.network_configuration, "assign_public_ip", "false")}"
 }
