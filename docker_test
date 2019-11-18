@@ -1,0 +1,8 @@
+#!/bin/bash
+
+HME=${HOME}
+if grep -q Microsoft /proc/version; then
+    HME=/c/Users/${USER}
+fi
+
+exec docker run -it -v ${HME}/.aws:/root/.aws:ro --rm terraform_modules_test $@

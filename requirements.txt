@@ -1,0 +1,15 @@
+--extra-index-url https://pip-test.techservices.illinois.edu/index/test
+
+addict==2.1.3
+behave==1.2.6
+collections-extended==1.0.2
+deepdiff==3.3.0
+jsonpickle==0.9.6
+parse==1.8.4
+parse-type==0.4.2
+pyhcl==0.3.12
+sdg-test-behave-core==0.8
+sdg-test-behave-web==0.1.5
+six==1.11.0
+tblib==1.3.2
+utaw==0.2.0

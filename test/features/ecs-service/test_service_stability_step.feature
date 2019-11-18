@@ -42,7 +42,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
             }]
             """
     
-    
+    @assertFail
     Scenario: Instance of 'aws_ecs_service' 'awsvpc_all'
         
         Given terraform map 'load_balancer'
@@ -79,14 +79,13 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | services              | ${var.ecs service name} |
             | cluster               | ${var.cluster}          |
             | health check required | False                   |
-        
-        
-        Given we expect this scenario to fail
+
+
         Given terraform file 'containers.json'
             """
             [{
               "name": "this-dakr-imuj-duz-not-eksist",
-              "image": "httpd",
+              "image": "this-imuj-duz-not-eksist",
               "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
@@ -130,17 +129,20 @@ Feature: We are able to instantiate all aws_ecs_service resources
         When we run terraform plan
         
         When we run terraform apply
-        
-        Then aws ECS has services in a steady state
-            |key                | value                   |
-            #-------------------|-------------------------|
-            | services          | ${var.ecs service name} |
-            | cluster           | ${var.cluster}          |
-            | max stopped tasks | 1                       |
-        
-        
+        Then we expect this step to fail
+            """
+            Then aws ECS has services in a steady state
+                |key                | value                   |
+                #-------------------|-------------------------|
+                | services          | ${var.ecs service name} |
+                | cluster           | ${var.cluster}          |
+                | max stopped tasks | 1                       |
+                | timeout           | 30                      |
+            """
+
+
+    @assertFail
     Scenario: 'aws_ecs_service' 'awsvpc_all' failure -> bad health check
-        Given we expect this scenario to fail
         Given terraform file 'containers.json'
             """
             [{
@@ -151,8 +153,8 @@ Feature: We are able to instantiate all aws_ecs_service resources
                     "CMD-SHELL",
                     "exit 1"
                   ],
-                  "interval": 30,
-                  "retries": 3,
+                  "interval": 5,
+                  "retries": 1,
                   "timeout": 5
               },
               "logConfiguration": {
@@ -198,17 +200,20 @@ Feature: We are able to instantiate all aws_ecs_service resources
         When we run terraform plan
         
         When we run terraform apply
-        
-        Then aws ECS has services in a steady state
-            |key                | value                   |
-            #-------------------|-------------------------|
-            | services          | ${var.ecs service name} |
-            | cluster           | ${var.cluster}          |
-            | max stopped tasks | 1                       |
-        
-        
+        Then we expect this step to fail
+            """
+            Then aws ECS has services in a steady state
+                |key                | value                   |
+                #-------------------|-------------------------|
+                | services          | ${var.ecs service name} |
+                | cluster           | ${var.cluster}          |
+                | max stopped tasks | 1                       |
+                | health check required | True |
+            """
+
+
+    @assertFail    
     Scenario: 'aws_ecs_service' 'awsvpc_all' failure -> bad container (entrypoint)
-        Given we expect this scenario to fail
         Given terraform file 'containers.json'
             """
             [{
@@ -258,24 +263,15 @@ Feature: We are able to instantiate all aws_ecs_service resources
         When we run terraform plan
         
         When we run terraform apply
-        
-        Then aws ECS has services in a steady state
-            |key                | value                   |
-            #-------------------|-------------------------|
-            | services          | ${var.ecs service name} |
-            | cluster           | ${var.cluster}          |
-            | max stopped tasks | 1                       |
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+        Then we expect this step to fail
+            """
+            Then aws ECS has services in a steady state
+                |key                | value                   |
+                #-------------------|-------------------------|
+                | services          | ${var.ecs service name} |
+                | cluster           | ${var.cluster}          |
+                | max stopped tasks | 1                       |
+                | timeout           | 30                      |
+            """
+
