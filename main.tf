@@ -157,6 +157,9 @@ resource "aws_ecs_service" "all" {
 
   service_registries {
     registry_arn = "${element(concat(aws_service_discovery_service.default.*.arn, aws_service_discovery_service.health_check.*.arn, aws_service_discovery_service.health_check_custom.*.arn, aws_service_discovery_service.health_check_and_health_check_custom.*.arn), 0)}"
+
+    container_name = "${local.sd_container_name}"
+    container_port = "${local.sd_container_port}"
   }
 }
 
@@ -209,6 +212,9 @@ resource "aws_ecs_service" "sd" {
 
   service_registries {
     registry_arn = "${element(concat(aws_service_discovery_service.default.*.arn, aws_service_discovery_service.health_check.*.arn, aws_service_discovery_service.health_check_custom.*.arn, aws_service_discovery_service.health_check_and_health_check_custom.*.arn), 0)}"
+
+    container_name = "${local.sd_container_name}"
+    container_port = "${local.sd_container_port}"
   }
 }
 
