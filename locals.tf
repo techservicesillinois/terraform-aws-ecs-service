@@ -11,8 +11,8 @@ locals {
 
   certificate_domain = "${lookup(var.load_balancer, "certificate_domain", "")}"
 
-  container_name = "${lookup(var.load_balancer, "container_name", lookup(var.service_discovery, "container_name", ""))}"
-  container_port = "${lookup(var.load_balancer, "container_port", lookup(var.service_discovery, "container_port", 0))}"
+  container_name = "${lookup(var.load_balancer, "container_name", "")}"
+  container_port = "${lookup(var.load_balancer, "container_port", 0)}"
 
   host_header  = "${lookup(var.load_balancer, "host_header", "")}"
   path_pattern = "${lookup(var.load_balancer, "path_pattern", "*")}"
@@ -26,17 +26,14 @@ locals {
 # task_definition map
 locals {
   container_definition_file = "${lookup(var.task_definition, "container_definition_file", "containers.json")}"
-  cpu                       = "${lookup(var.task_definition, "cpu", var.launch_type == "FARGATE" ? "256" : "")}"
-  memory                    = "${lookup(var.task_definition, "memory", var.launch_type == "FARGATE" ? "512" : "0")}"
+  cpu                       = "${lookup(var.task_definition, "cpu", "256")}"
+  memory                    = "${lookup(var.task_definition, "memory", "512")}"
   network_mode              = "${lookup(var.task_definition, "network_mode", "awsvpc")}"
   task_role_arn             = "${lookup(var.task_definition, "task_role_arn", "")}"
 }
 
 # service_discovery map
 locals {
-  sd_container_name = "${lookup(var.service_discovery, "container_name", lookup(var.load_balancer, "container_name", ""))}"
-  sd_container_port = "${lookup(var.service_discovery, "container_port", lookup(var.load_balancer, "container_port", 0))}"
-
   dns_routing_policy = "${lookup(var.service_discovery, "routing_policy", "MULTIVALUE")}"
   dns_ttl            = "${lookup(var.service_discovery, "ttl", "60")}"
   dns_type           = "${lookup(var.service_discovery, "type", "A")}"
