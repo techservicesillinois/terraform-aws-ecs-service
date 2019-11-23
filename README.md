@@ -350,14 +350,12 @@ A `load_balancer` block supports the following:
 * `port` - (Optional) The port of the listener. Defaults to 443.
 
 * `container_name` - (Required) The name of the container to associate
-with the load balancer as it appears in the container definition
-(by default, `containers.json`). Defaults to the value specified
-in the [Service Discovery](#service_discovery) block.
+with the load balancer as it appears in the container definition (by
+default, `containers.json`).
 
 * `container_port` - (Required) The port on the container to associate
-with the load balancer as it appears in the container definition
-(by default, `containers.json`). Defaults to the value specified
-in the [Service Discovery](#service_discovery) block.
+with the load balancer as it appears in the container definition (by
+default, `containers.json`).
 
 * `certificate_domain` - (Optional) The domain name associated with an Amazon Certificate Manager (ACM) certificate. If specified, the certificate is looked up by the domain name, and the resulting certificate ARN is associated with the listener for the ECS service.
 
@@ -514,16 +512,6 @@ A `service_discovery` block configures [Amazon Service Discovery](https://docs.a
  by the `name` argument.
 
 * `namespace_id` – (Required) The ID of the namespace to use for DNS configuration.
-
-* `container_name` - (Required) The name of the container to use
-with the service discovery service as it appears in the container
-definition (by default, `containers.json`). Defaults to the value
-specified in the [Load Balancer block](#load_balancer).
-
-* `container_port` - (Required) The port on the container to use
-with the service discovery service as it appears in the container
-definition (by default, `containers.json`). Defaults to the value
-specified in the [Load Balancer block](#load_balancer).
 
 * `dns_routing_policy` – (Optional) The routing policy that you want to apply to all records that Route 53 creates when you register an instance and specify the service. Valid Values: MULTIVALUE, WEIGHTED.
 
