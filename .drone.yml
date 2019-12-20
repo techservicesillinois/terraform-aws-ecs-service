@@ -1,0 +1,11 @@
+pipeline:
+  build:
+    image: hashicorp/terraform
+    commands:
+      - apk add make
+      - make tfc
+  linter:
+    image: python:3
+    commands:
+      - pip3 install --extra-index-url https://pip-test.techservices.illinois.edu/index/test tflint
+      - make test

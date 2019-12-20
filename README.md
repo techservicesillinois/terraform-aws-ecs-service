@@ -1,5 +1,7 @@
 # ecs-service
 
+[![Build Status](https://drone.techservices.illinois.edu/api/badges/techservicesillinois/terraform-aws-ecs-service/status.svg)](https://drone.techservices.illinois.edu/techservicesillinois/terraform-aws-ecs-service)
+
 Provides an ECS service - effectively a task that is expected to
 run until an error occurs or a user terminates it (typically a
 webserver or a database). This module's primary intent is to make
@@ -57,7 +59,7 @@ module "service_name" {
 
   name = "service_name"
 
-  load_balancer {
+  load_balancer = {
     name           = "load_balancer_name"
     port           = 443
     container_name = "main_container_name"
@@ -65,13 +67,13 @@ module "service_name" {
     host_header    = "myservice.example.com"
   }
 
-  alias {
+  alias = {
     domain   = "example.com"
     hostname = "myservice"
   }
 
-  network_configuration {
-    assign_public_ip = "true"
+  network_configuration = {
+    assign_public_ip = true
     tier             = "public"
     vpc              = "my-vpc"
   }
@@ -85,11 +87,11 @@ module "service_name" {
 
   name  = "service_name"
 
-  service_discovery {
+  service_discovery = {
     namespace_id = "ns-cxn6fqejoygbxan5"
   }
 
-  network_configuration {
+  network_configuration = {
     tier = "nat"
     vpc  = "my-vpc"
   }
@@ -105,7 +107,7 @@ module "service_name" {
   name        = "service_name"
   launch_type = "EC2"
 
-  load_balancer {
+  load_balancer = {
     name           = "load_balancer_name"
     port           = 443
     container_name = "main_container_name"
@@ -113,12 +115,12 @@ module "service_name" {
     host_header    = "myservice.example.com"
   }
 
-  alias {
+  alias = {
     domain   = "example.com"
     hostname = "myservice"
   }
 
-  task_definition {
+  task_definition = {
     network_mode = "bridge"
   }
 }
@@ -136,7 +138,7 @@ module "service_name" {
   task_definition_arn = "task_definition_name:revision"
   desired_count       = 3
 
-  load_balancer {
+  load_balancer = {
     name           = "load_balancer_name"
     port           = 443
     container_name = "main_container_name"
@@ -144,7 +146,7 @@ module "service_name" {
     host_header    = "myservice.example.com"
   }
 
-  alias {
+  alias = {
     domain   = "example.com"
     hostname = "myservice"
   }
@@ -166,28 +168,28 @@ module "service_name" {
 ```
 ### Configure autoscaling policy and cloudwatch alarms for ECS service
 ```hcl
-autoscale {
-  autoscale_max_capacity        = "5"
+autoscale = {
+  autoscale_max_capacity        = 5
   metric_name                   = "CPUUtilization"
-  datapoints_to_alarm           = "1" 
-  evaluation_periods            = "1"
-  period                        = "60"
-  cooldown                      = "60"
+  datapoints_to_alarm           = 1 
+  evaluation_periods            = 1
+  period                        = 60
+  cooldown                      = 60
   adjustment_type               = "ChangeInCapacity"
 
   ### Cloudwatch Alaram Scale up and Scale down ###
-  scale_up_threshold            = "70"
-  scale_down_threshold          = "40"
+  scale_up_threshold            = 70
+  scale_down_threshold          = 40
 
   ### AutoScale Policy Scale up ###
   scale_up_comparison_operator   = "GreaterThanOrEqualToThreshold"
-  scale_up_interval_lower_bound  = "1"
-  scale_up_adjustment            = "1"
+  scale_up_interval_lower_bound  = 1
+  scale_up_adjustment            = 1
   
   ### AutoScale Policy Scale down ###
   scale_down_comparison_operator   = "LessThanThreshold"
-  scale_down_interval_lower_bound  = "0"
-  scale_down_adjustment            = "-1"
+  scale_down_interval_lower_bound  = 0
+  scale_down_adjustment            = -1
 
 }
 ```

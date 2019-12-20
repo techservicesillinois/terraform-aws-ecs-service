@@ -11,38 +11,82 @@
 # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_size
 
 locals {
-  task_definition_arn = "${element(concat(aws_ecs_task_definition.fargate.*.arn,
-                           aws_ecs_task_definition.ec2.*.arn,  list("")), 0)}"
+  task_definition_arn = element(
+    concat(
+      aws_ecs_task_definition.fargate.*.arn,
+      aws_ecs_task_definition.ec2.*.arn,
+      [""],
+    ),
+    0,
+  )
 }
 
 resource "aws_ecs_task_definition" "fargate" {
-  count = "${var.task_definition_arn == "" && var.launch_type == "FARGATE" ? 1 : 0}"
+  count = var.task_definition_arn == "" && var.launch_type == "FARGATE" ? 1 : 0
 
-  family                = "${var.name}"
-  container_definitions = "${file(local.container_definition_file)}"
-  task_role_arn         = "${local.task_role_arn}"
-  execution_role_arn    = "${format("arn:aws:iam::%s:role/ecsTaskExecutionRole",
-                                 data.aws_caller_identity.current.account_id)}"
+  family                = var.name
+  container_definitions = file(local.container_definition_file)
+  task_role_arn         = local.task_role_arn
+  execution_role_arn = format(
+    "arn:aws:iam::%s:role/ecsTaskExecutionRole",
+    data.aws_caller_identity.current.account_id,
+  )
 
-  network_mode = "${local.network_mode}"
-  volume       = "${var.volume}"
+  network_mode = local.network_mode
+  dynamic "volume" {
+    for_each = var.volume
+    content {
+      host_path = lookup(volume.value, "host_path", null)
+      name      = volume.value.name
 
-  cpu                      = "${local.cpu}"
-  memory                   = "${local.memory}"
+      dynamic "docker_volume_configuration" {
+        for_each = lookup(volume.value, "docker_volume_configuration", [])
+        content {
+          autoprovision = lookup(docker_volume_configuration.value, "autoprovision", null)
+          driver        = lookup(docker_volume_configuration.value, "driver", null)
+          driver_opts   = lookup(docker_volume_configuration.value, "driver_opts", null)
+          labels        = lookup(docker_volume_configuration.value, "labels", null)
+          scope         = lookup(docker_volume_configuration.value, "scope", null)
+        }
+      }
+    }
+  }
+
+  cpu                      = local.cpu
+  memory                   = local.memory
   requires_compatibilities = ["FARGATE"]
 }
 
 resource "aws_ecs_task_definition" "ec2" {
-  count = "${var.task_definition_arn == "" && var.launch_type == "EC2" ? 1 : 0}"
+  count = var.task_definition_arn == "" && var.launch_type == "EC2" ? 1 : 0
 
-  family                = "${var.name}"
-  container_definitions = "${file(local.container_definition_file)}"
-  task_role_arn         = "${local.task_role_arn}"
-  execution_role_arn    = "${format("arn:aws:iam::%s:role/ecsTaskExecutionRole",
-                                 data.aws_caller_identity.current.account_id)}"
+  family                = var.name
+  container_definitions = file(local.container_definition_file)
+  task_role_arn         = local.task_role_arn
+  execution_role_arn = format(
+    "arn:aws:iam::%s:role/ecsTaskExecutionRole",
+    data.aws_caller_identity.current.account_id,
+  )
 
-  network_mode = "${local.network_mode}"
-  volume       = "${var.volume}"
+  network_mode = local.network_mode
+  dynamic "volume" {
+    for_each = var.volume
+    content {
+      host_path = lookup(volume.value, "host_path", null)
+      name      = volume.value.name
+
+      dynamic "docker_volume_configuration" {
+        for_each = lookup(volume.value, "docker_volume_configuration", [])
+        content {
+          autoprovision = lookup(docker_volume_configuration.value, "autoprovision", null)
+          driver        = lookup(docker_volume_configuration.value, "driver", null)
+          driver_opts   = lookup(docker_volume_configuration.value, "driver_opts", null)
+          labels        = lookup(docker_volume_configuration.value, "labels", null)
+          scope         = lookup(docker_volume_configuration.value, "scope", null)
+        }
+      }
+    }
+  }
 
   requires_compatibilities = ["EC2"]
 }
