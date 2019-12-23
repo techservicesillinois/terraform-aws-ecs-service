@@ -7,20 +7,20 @@ locals {
 # load_balancer map
 locals {
   lb_name = lookup(var.load_balancer, "name", "")
-  lb_port = lookup(var.load_balancer, "port", 443)
+  lb_port = tonumber(lookup(var.load_balancer, "port", 443))
 
   certificate_domain = lookup(var.load_balancer, "certificate_domain", "")
 
   container_name = lookup(var.load_balancer, "container_name", "")
-  container_port = lookup(var.load_balancer, "container_port", 0)
+  container_port = tonumber(lookup(var.load_balancer, "container_port", 0))
 
   host_header  = lookup(var.load_balancer, "host_header", "")
   path_pattern = lookup(var.load_balancer, "path_pattern", "*")
 
   # Valid values for priority are natural numbers between 1 and 50000
-  deregistration_delay = lookup(var.load_balancer, "deregistration_delay", 300)
+  deregistration_delay = tonumber(lookup(var.load_balancer, "deregistration_delay", 300))
   lb_security_group_id = lookup(var.load_balancer, "security_group_id", "")
-  priority             = lookup(var.load_balancer, "priority", 0)
+  priority             = tonumber(lookup(var.load_balancer, "priority", 0))
 }
 
 # task_definition map
