@@ -105,6 +105,7 @@ variable "service_discovery_health_check_custom_config" {
 variable "stickiness" {
   description = "A stickiness block. Valid only with application load balancers"
 
+  type = map(any)
   default = {
     type    = "lb_cookie"
     enabled = false
