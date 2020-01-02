@@ -52,7 +52,7 @@ resource "aws_security_group_rule" "service_in_lb" {
 # rule is conditionally created if the ports var is populated.
 resource "aws_security_group_rule" "service_in" {
   # BUG: THE COUNT LINE IS A HACK TO WORK AROUND A TERRAFORM BUG...
-  count       = local.network_mode == "awsvpc" ? local.ports_length : 0
+  count       = local.network_mode == "awsvpc" ? length(local.ports) : 0
   description = "Allow inbound TCP connections directly to ECS service ${var.name}"
 
   type        = "ingress"
