@@ -48,20 +48,8 @@ locals {
 # network_configuration map
 locals {
   assign_public_ip = lookup(var.network_configuration, "assign_public_ip", false)
-  ports            = [compact(split(" ", lookup(var.network_configuration, "ports", "")))]
+  ports            = compact(split(" ", lookup(var.network_configuration, "ports", "")))
 
-  # BUG: THIS IS A HACK TO WORK AROUND A TERRAFORM BUG...
-  ports_length = length(
-    replace(
-      replace(
-        lookup(var.network_configuration, "ports", ""),
-        "/[0-9]+/",
-        1,
-      ),
-      "/[^1]/",
-      "",
-    ),
-  )
   nc_security_groups = compact(
     split(
       " ",
