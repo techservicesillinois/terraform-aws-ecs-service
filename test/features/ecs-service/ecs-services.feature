@@ -95,7 +95,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
             #--------|-------------------------------|---------------------|-------|
             | create | aws_alb_listener_rule         | set_priority        |       |
             |        | aws_ecs_service               | awsvpc_all          |       |
-            |        | aws_ecs_task_definition       | default             |       |
+            |        | aws_ecs_task_definition       | fargate             |       |
             |        | aws_lb_target_group           | default             |       |
             |        | aws_route53_record            | default             |       |
             |        | aws_security_group            | default             |       |
@@ -152,7 +152,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
 #            #--------|-------------------------------|---------|-------|
 #            | create | aws_alb_listener_rule         | default |       |
 #            |        | aws_ecs_service               | all     |       |
-#            |        | aws_ecs_task_definition       | default |       |
+#            |        | aws_ecs_task_definition       | fargate |       |
 #            |        | aws_lb_target_group           | default |       |
 #            |        | aws_service_discovery_service | default |       |
 #        
@@ -190,7 +190,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
             | action | resource                | name         | count |
             #--------|-------------------------|--------------|-------|
             | create | aws_ecs_service         | awsvpc       |       |
-            |        | aws_ecs_task_definition | default      |       |
+            |        | aws_ecs_task_definition | fargate      |       |
             |        | aws_security_group      | default      |       |
             |        | aws_security_group_rule | service_in   |       |
             |        | aws_security_group_rule | service_out  |       |
@@ -239,7 +239,7 @@ Feature: We are able to instantiate all aws_ecs_service resources
             #--------|-------------------------|---------------|-------|
             | create | aws_alb_listener_rule   | default       |       |
             |        | aws_ecs_service         | awsvpc_lb     |       |
-            |        | aws_ecs_task_definition | default       |       |
+            |        | aws_ecs_task_definition | fargate       |       |
             |        | aws_lb_target_group     | default       |       |
             |        | aws_security_group      | default       |       |
             |        | aws_security_group_rule | lb_out        |       |
