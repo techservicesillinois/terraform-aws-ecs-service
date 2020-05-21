@@ -124,7 +124,7 @@ variable "health_check" {
 
 variable "volume" {
   description = "A set of volume blocks that containers in your task may use."
-  type        = list(map(string))
+  type        = list(any)
   default     = []
 }
 
