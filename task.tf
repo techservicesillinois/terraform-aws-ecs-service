@@ -38,17 +38,6 @@ resource "aws_ecs_task_definition" "fargate" {
     content {
       host_path = lookup(volume.value, "host_path", null)
       name      = volume.value.name
-
-      dynamic "docker_volume_configuration" {
-        for_each = lookup(volume.value, "docker_volume_configuration", [])
-        content {
-          autoprovision = lookup(docker_volume_configuration.value, "autoprovision", null)
-          driver        = lookup(docker_volume_configuration.value, "driver", null)
-          driver_opts   = lookup(docker_volume_configuration.value, "driver_opts", null)
-          labels        = lookup(docker_volume_configuration.value, "labels", null)
-          scope         = lookup(docker_volume_configuration.value, "scope", null)
-        }
-      }
     }
   }
 
