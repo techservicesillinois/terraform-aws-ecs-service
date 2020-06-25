@@ -33,11 +33,31 @@ resource "aws_ecs_task_definition" "fargate" {
   )
 
   network_mode = local.network_mode
+
   dynamic "volume" {
     for_each = var.volume
     content {
-      host_path = lookup(volume.value, "host_path", null)
+      host_path = volume.value.host_path
       name      = volume.value.name
+
+      dynamic "docker_volume_configuration" {
+        for_each = volume.value.docker_volume_configuration != null ? [volume.value.docker_volume_configuration] : []
+        content {
+          autoprovision = docker_volume_configuration.value.autoprovision
+          driver        = docker_volume_configuration.value.driver
+          driver_opts   = docker_volume_configuration.value.driver_opts
+          labels        = docker_volume_configuration.value.labels
+          scope         = docker_volume_configuration.value.scope
+        }
+      }
+
+      dynamic "efs_volume_configuration" {
+        for_each = volume.value.efs_volume_configuration != null ? [volume.value.efs_volume_configuration] : []
+        content {
+          file_system_id = efs_volume_configuration.value.file_system_id
+          root_directory = efs_volume_configuration.value.root_directory
+        }
+      }
     }
   }
 
@@ -61,17 +81,25 @@ resource "aws_ecs_task_definition" "ec2" {
   dynamic "volume" {
     for_each = var.volume
     content {
-      host_path = lookup(volume.value, "host_path", null)
+      host_path = volume.value.host_path
       name      = volume.value.name
 
       dynamic "docker_volume_configuration" {
-        for_each = lookup(volume.value, "docker_volume_configuration", [])
+        for_each = volume.value.docker_volume_configuration != null ? [volume.value.docker_volume_configuration] : []
         content {
-          autoprovision = lookup(docker_volume_configuration.value, "autoprovision", null)
-          driver        = lookup(docker_volume_configuration.value, "driver", null)
-          driver_opts   = lookup(docker_volume_configuration.value, "driver_opts", null)
-          labels        = lookup(docker_volume_configuration.value, "labels", null)
-          scope         = lookup(docker_volume_configuration.value, "scope", null)
+          autoprovision = docker_volume_configuration.value.autoprovision
+          driver        = docker_volume_configuration.value.driver
+          driver_opts   = docker_volume_configuration.value.driver_opts
+          labels        = docker_volume_configuration.value.labels
+          scope         = docker_volume_configuration.value.scope
+        }
+      }
+
+      dynamic "efs_volume_configuration" {
+        for_each = volume.value.efs_volume_configuration != null ? [volume.value.efs_volume_configuration] : []
+        content {
+          file_system_id = efs_volume_configuration.value.file_system_id
+          root_directory = efs_volume_configuration.value.root_directory
         }
       }
     }
