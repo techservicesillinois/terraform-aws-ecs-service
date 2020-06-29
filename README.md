@@ -590,6 +590,67 @@ that is presented to the container. If not set, ECS will create a
 non persistent data volume that starts empty and is deleted after
 the task has finished.
 
+* `docker_volume_configuration` - (Optional, but see note) Used to configure a [Docker volume](#docker_volume_configuration). **NOTE:** Due to limitations in Terraform object typing, either a valid `docker_volume_configuration` map or the value `null` must be specified.
+
+* `efs_volume_configuration` - (Optional, but see note) Used to configure an [EFS volume](#efs_volume_configuration). **NOTE:** Due to limitations in Terraform object typing, either a valid `efs_volume_configuration` map or the value `null` must be specified.
+
+```
+volume = [
+    {
+      name      = "docker-volume"
+      host_path = null
+
+      docker_volume_configuration = null   # Needs to be specified as null, even if not used.
+      efs_volume_configuration    = null   # Needs to be specified as null, even if not used.
+    }
+ ]
+```
+
+`docker_volume_configuration`
+--------
+
+A `docker_volume_configuration` block appears within a [`volume`](#volume) block, and supports the following:
+
+* `scope` - (Optional) The scope for the Docker volume, which determines its lifecycle, either task or shared. Docker volumes that are scoped to a task are automatically provisioned when the task starts and destroyed when the task stops. Docker volumes that are scoped as shared persist after the task stops.
+
+* `autoprovision` - (Optional) If this value is true, the Docker volume is created if it does not already exist. Note: This field is only used if the scope is shared.
+
+* `driver` - (Optional) The Docker volume driver to use. The driver value must match the driver name provided by Docker because it is used for task placement.
+
+* `driver_opts` - (Optional) A map of Docker driver specific options.
+
+* `labels - (Optional) A map of custom metadata to add to your Docker volume.
+
+For more information, see [Specifying a Docker volume in your Task Definition Developer Guide](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/docker-volumes.html#specify-volume-config)
+
+`efs_volume_configuration`
+--------
+
+An `efs_volume_configuration` block appears within a [`volume`](#volume) block, and supports the following:
+
+* `file_system_id` - (Required) The ID of the EFS File System.
+
+* `root_directory` - (Optional) The path to mount on the host.
+
+
+```
+volume = [
+    {
+      name = "efs-volume"
+      host_path = null
+
+      docker_volume_configuration = null
+
+      efs_volume_configuration = {
+        file_system_id = "fs-012345678"
+        root_directory = null
+      }
+    }
+ ]
+```
+
+For more information, see [Specifying an Amazon EFS File System in your Task Definition](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/efs-volumes.html#specify-efs-config).
+
 Attributes Reference
 --------------------
 

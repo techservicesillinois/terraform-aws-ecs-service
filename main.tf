@@ -28,6 +28,7 @@ resource "aws_ecs_service" "awsvpc_all" {
       type       = placement_constraints.value.type
     }
   }
+
   dynamic "ordered_placement_strategy" {
     for_each = var.ordered_placement_strategy
     content {
@@ -35,6 +36,8 @@ resource "aws_ecs_service" "awsvpc_all" {
       type  = ordered_placement_strategy.value.type
     }
   }
+
+  platform_version = var.platform_version
 
   load_balancer {
     container_name   = local.container_name
@@ -84,6 +87,7 @@ resource "aws_ecs_service" "awsvpc_lb" {
       type       = placement_constraints.value.type
     }
   }
+
   dynamic "ordered_placement_strategy" {
     for_each = var.ordered_placement_strategy
     content {
@@ -91,6 +95,8 @@ resource "aws_ecs_service" "awsvpc_lb" {
       type  = ordered_placement_strategy.value.type
     }
   }
+
+  platform_version = var.platform_version
 
   load_balancer {
     container_name   = local.container_name
@@ -128,6 +134,7 @@ resource "aws_ecs_service" "awsvpc_sd" {
       type       = placement_constraints.value.type
     }
   }
+
   dynamic "ordered_placement_strategy" {
     for_each = var.ordered_placement_strategy
     content {
@@ -135,6 +142,8 @@ resource "aws_ecs_service" "awsvpc_sd" {
       type  = ordered_placement_strategy.value.type
     }
   }
+
+  platform_version = var.platform_version
 
   network_configuration {
     assign_public_ip = local.assign_public_ip
@@ -178,6 +187,7 @@ resource "aws_ecs_service" "awsvpc" {
       type       = placement_constraints.value.type
     }
   }
+
   dynamic "ordered_placement_strategy" {
     for_each = var.ordered_placement_strategy
     content {
@@ -185,6 +195,8 @@ resource "aws_ecs_service" "awsvpc" {
       type  = ordered_placement_strategy.value.type
     }
   }
+
+  platform_version = var.platform_version
 
   network_configuration {
     assign_public_ip = local.assign_public_ip
@@ -217,6 +229,7 @@ resource "aws_ecs_service" "all" {
       type       = placement_constraints.value.type
     }
   }
+
   dynamic "ordered_placement_strategy" {
     for_each = var.ordered_placement_strategy
     content {
@@ -224,6 +237,8 @@ resource "aws_ecs_service" "all" {
       type  = ordered_placement_strategy.value.type
     }
   }
+
+  platform_version = var.platform_version
 
   load_balancer {
     container_name   = local.container_name
@@ -268,6 +283,7 @@ resource "aws_ecs_service" "lb" {
       type       = placement_constraints.value.type
     }
   }
+
   dynamic "ordered_placement_strategy" {
     for_each = var.ordered_placement_strategy
     content {
@@ -275,6 +291,8 @@ resource "aws_ecs_service" "lb" {
       type  = ordered_placement_strategy.value.type
     }
   }
+
+  platform_version = var.platform_version
 
   load_balancer {
     container_name   = local.container_name
@@ -307,6 +325,7 @@ resource "aws_ecs_service" "sd" {
       type       = placement_constraints.value.type
     }
   }
+
   dynamic "ordered_placement_strategy" {
     for_each = var.ordered_placement_strategy
     content {
@@ -314,6 +333,8 @@ resource "aws_ecs_service" "sd" {
       type  = ordered_placement_strategy.value.type
     }
   }
+
+  platform_version = var.platform_version
 
   service_registries {
     registry_arn = element(
@@ -354,6 +375,7 @@ resource "aws_ecs_service" "default" {
       type       = placement_constraints.value.type
     }
   }
+
   dynamic "ordered_placement_strategy" {
     for_each = var.ordered_placement_strategy
     content {
@@ -361,4 +383,6 @@ resource "aws_ecs_service" "default" {
       type  = ordered_placement_strategy.value.type
     }
   }
+
+  platform_version = var.platform_version
 }
