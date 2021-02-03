@@ -1,6 +1,6 @@
 # ecs-service
 
-[![Build Status](https://drone.techservices.illinois.edu/api/badges/techservicesillinois/terraform-aws-ecs-service/status.svg)](https://drone.techservices.illinois.edu/techservicesillinois/terraform-aws-ecs-service)
+[![Terraform actions status](https://github.com/techservicesillinois/terraform-aws-ecs-service/workflows/terraform/badge.svg)](https://github.com/techservicesillinois/terraform-aws-ecs-service/actions)
 
 Provides an ECS service - effectively a task that is expected to
 run until an error occurs or a user terminates it (typically a
@@ -274,6 +274,8 @@ contains settings for ECS managed health checks.
 that points to the load balancer. Requires that a `load_balancer` block is definied.
 
 * `autoscale` – (Optional) An [autoscale](#autoscale) block used to create an autoscaling configuration. Requires that a `autoscale` block is defined. Learn more about [ECS autoscaling](https://docs.aws.amazon.com/autoscaling/application/userguide/application-auto-scaling-step-scaling-policies.html).
+
+* `tags` - Tags to be applied to resources where supported.
 
 `autoscale`
 ----------

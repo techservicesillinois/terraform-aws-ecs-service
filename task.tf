@@ -64,6 +64,8 @@ resource "aws_ecs_task_definition" "fargate" {
   cpu                      = local.cpu
   memory                   = local.memory
   requires_compatibilities = ["FARGATE"]
+
+  tags = merge({ "Name" = var.name }, var.tags)
 }
 
 resource "aws_ecs_task_definition" "ec2" {
@@ -106,4 +108,6 @@ resource "aws_ecs_task_definition" "ec2" {
   }
 
   requires_compatibilities = ["EC2"]
+
+  tags = merge({ "Name" = var.name }, var.tags)
 }

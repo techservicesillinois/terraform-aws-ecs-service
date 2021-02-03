@@ -38,7 +38,7 @@ test:
 	# Do NOT define a variable in files other than variables.tf
 	! $(EGREP) 'variable\s+"\w+"\s*\{' $(SRCS) --exclude=variables.tf
 	# DO put a badge in top-level README.md
-	grep -q "\[\!\[Build Status\]([^)]*$(REPO)/status.svg)\]([^)]*$(REPO))" README.md
+	grep -q "\[\!\[Terraform actions status\]([^)]*$(REPO)/workflows/terraform/badge.svg)\]([^)]*$(REPO)/actions)" README.md
 	# Do NOT split a source line over more than one line
 	! $(GREP) 'source\s*=\s*$$' $(SRCS) $(DOCS)
 	# Do NOT use ?ref= in source lines in a README.md!
