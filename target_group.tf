@@ -42,5 +42,6 @@ resource "aws_lb_target_group" "default" {
     }
   }
   target_type = local.network_mode == "awsvpc" ? "ip" : "instance"
-  tags        = var.tags
+
+  tags = merge({ "Name" = var.name }, var.tags)
 }

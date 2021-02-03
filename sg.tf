@@ -25,12 +25,8 @@ resource "aws_security_group" "default" {
   description = "security group for ${var.name} service"
   name        = var.name
   vpc_id      = data.aws_subnet.selected[0].vpc_id
-  tags = merge(
-    {
-      "Name" = var.name
-    },
-    var.tags,
-  )
+
+  tags = merge({ "Name" = var.name }, var.tags)
 }
 
 # Allow the containers to receive packets from the LB

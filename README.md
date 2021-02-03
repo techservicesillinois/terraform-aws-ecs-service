@@ -275,6 +275,8 @@ that points to the load balancer. Requires that a `load_balancer` block is defin
 
 * `autoscale` – (Optional) An [autoscale](#autoscale) block used to create an autoscaling configuration. Requires that a `autoscale` block is defined. Learn more about [ECS autoscaling](https://docs.aws.amazon.com/autoscaling/application/userguide/application-auto-scaling-step-scaling-policies.html).
 
+* `tags` - Tags to be applied to resources where supported.
+
 `autoscale`
 ----------
 

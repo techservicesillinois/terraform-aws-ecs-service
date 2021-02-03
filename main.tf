@@ -62,6 +62,8 @@ resource "aws_ecs_service" "awsvpc_all" {
       0,
     )
   }
+
+  tags = merge({ "Name" = var.name }, var.tags)
 }
 
 # This resource is conditionally built when using awsvpc network mode
@@ -109,6 +111,8 @@ resource "aws_ecs_service" "awsvpc_lb" {
     security_groups  = local.security_groups
     subnets          = local.all_subnets
   }
+
+  tags = merge({ "Name" = var.name }, var.tags)
 }
 
 # This resource is conditionally built when using awsvpc network mode
@@ -162,6 +166,8 @@ resource "aws_ecs_service" "awsvpc_sd" {
       0,
     )
   }
+
+  tags = merge({ "Name" = var.name }, var.tags)
 }
 
 # This resource is conditionally built when using awsvpc network
@@ -203,6 +209,8 @@ resource "aws_ecs_service" "awsvpc" {
     security_groups  = local.security_groups
     subnets          = local.all_subnets
   }
+
+  tags = merge({ "Name" = var.name }, var.tags)
 }
 
 # This resource is conditionally built when not using awsvpc network
@@ -257,6 +265,8 @@ resource "aws_ecs_service" "all" {
       0,
     )
   }
+
+  tags = merge({ "Name" = var.name }, var.tags)
 }
 
 # This resource is conditionally built when not using awsvpc network
@@ -299,6 +309,8 @@ resource "aws_ecs_service" "lb" {
     container_port   = local.container_port
     target_group_arn = aws_lb_target_group.default[0].arn
   }
+
+  tags = merge({ "Name" = var.name }, var.tags)
 }
 
 # This resource is conditionally built when not using awsvpc network mode
@@ -347,6 +359,8 @@ resource "aws_ecs_service" "sd" {
       0,
     )
   }
+
+  tags = merge({ "Name" = var.name }, var.tags)
 }
 
 # This resource is conditionally built when not using awsvpc network
@@ -385,4 +399,6 @@ resource "aws_ecs_service" "default" {
   }
 
   platform_version = var.platform_version
+
+  tags = merge({ "Name" = var.name }, var.tags)
 }
