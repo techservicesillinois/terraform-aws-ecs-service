@@ -26,9 +26,10 @@ output "task_definition_arn" {
   value = local.task_definition_arn
 }
 
-output "security_group_id" {
-  value = element(concat(aws_security_group.default.*.id, [""]), 0)
-}
+# FIXME: Hack!!!!!
+#output "security_group_id" {
+# value = element(concat(aws_security_group.default.*.id, [""]), 0)
+#}
 
 output "subnet_ids" {
   value = local.all_subnets

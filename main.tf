@@ -108,8 +108,9 @@ resource "aws_ecs_service" "awsvpc_lb" {
 
   network_configuration {
     assign_public_ip = local.assign_public_ip
-    security_groups  = local.security_groups
-    subnets          = local.all_subnets
+    # FIXME: Hack!!!!!
+    # security_groups  = local.security_groups
+    subnets = local.all_subnets
   }
 
   tags = merge({ "Name" = var.name }, var.tags)

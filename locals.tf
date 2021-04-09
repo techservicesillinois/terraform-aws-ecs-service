@@ -70,7 +70,8 @@ locals {
 locals {
   security_groups = distinct(
     concat(
-      aws_security_group.default.*.id,
+      # FIXME: Hack!!!!!
+      # aws_security_group.default.*.id,
       data.aws_security_group.selected.*.id,
       local.nc_security_groups,
     ),

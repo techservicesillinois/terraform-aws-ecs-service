@@ -12,6 +12,14 @@ data "aws_ecs_cluster" "selected" {
   cluster_name = var.cluster
 }
 
+locals {
+  # FIXME: This will break as written for non-load-balanced services.
+  is_alb = (data.aws_lb.selected[0].load_balancer_type == "application") ? true : false
+  is_nlb = (data.aws_lb.selected[0].load_balancer_type == "network") ? true : false
+  # # TODO: Stolen from terraform-aws-lb; not yet used here.
+  # needs_certificate = local.is_alb && ! var.internal
+}
+
 ## LB data sources
 
 data "aws_lb" "selected" {
@@ -26,7 +34,7 @@ data "aws_lb_listener" "selected" {
 }
 
 data "aws_security_group" "lb" {
-  count = length(var.load_balancer) > 0 ? 1 : 0
+  count = local.is_alb && length(var.load_balancer) > 0 ? 1 : 0
   name  = data.aws_lb.selected[0].name
 }
 
