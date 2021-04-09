@@ -28,7 +28,7 @@ data "aws_lb" "selected" {
 }
 
 data "aws_lb_listener" "selected" {
-  count             = length(var.load_balancer) > 0 ? 1 : 0
+  count             = local.is_alb && length(var.load_balancer) > 0 ? 1 : 0
   load_balancer_arn = data.aws_lb.selected[0].arn
   port              = local.lb_port
 }
