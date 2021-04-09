@@ -67,11 +67,12 @@ locals {
   vpc     = lookup(var.network_configuration, "vpc", "")
 }
 
+# FIXME: This might break with NLBs.
+
 locals {
   security_groups = distinct(
     concat(
-      # FIXME: Hack!!!!!
-      # aws_security_group.default.*.id,
+      aws_security_group.default.*.id,
       data.aws_security_group.selected.*.id,
       local.nc_security_groups,
     ),
