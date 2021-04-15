@@ -6,7 +6,7 @@
 # Should we support this?
 
 resource "aws_lb_target_group" "default" {
-  count = length(var.load_balancer) > 0 ? 1 : 0
+  count = local.uses_lb ? 1 : 0
   name  = var.name
   port  = local.container_port
 
