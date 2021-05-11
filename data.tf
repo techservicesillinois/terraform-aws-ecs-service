@@ -1,7 +1,7 @@
 # Local variables for convenience due to frequent use in tests (e.g., in "for_each").
 
 locals {
-  # Do we use a load balancer (any type)?
+  # Do we use a load balancer of any type?
   uses_lb = length(var.load_balancer) > 0
 
   # Do we use an application load balancer (ALB)?
