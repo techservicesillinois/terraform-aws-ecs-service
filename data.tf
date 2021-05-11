@@ -43,7 +43,7 @@ data "aws_lb_listener" "selected" {
 }
 
 data "aws_security_group" "lb" {
-  count = local.uses_alb ? 1 : 0
+  count = local.uses_lb ? 1 : 0
   name  = data.aws_lb.selected[0].name
 }
 
