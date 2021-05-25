@@ -5,10 +5,11 @@ locals {
   lb_sg_id = length(local.lb_security_group_id) > 0 ? local.lb_security_group_id : element(concat(data.aws_security_group.lb.*.id, [""]), 0)
 }
 
-# Allow the LB to send packets to the containers
+# If an ALB or NLB is configured, allow outbound connections from its
+# security group to the ECS service.
+
 resource "aws_security_group_rule" "lb_out" {
-  # count        = local.network_mode == "awsvpc" && length(var.load_balancer) > 0 ? 1 : 0
-  count       = local.uses_alb && local.network_mode == "awsvpc" && length(var.load_balancer) > 0 ? 1 : 0
+  count       = local.uses_lb && local.network_mode == "awsvpc" && length(var.load_balancer) > 0 ? 1 : 0
   description = "Allow outbound connections from the LB to ECS service ${var.name}"
 
   type              = "egress"
@@ -22,8 +23,7 @@ resource "aws_security_group_rule" "lb_out" {
 
 # Default security group for the ECS service (awsvpc mode only)
 resource "aws_security_group" "default" {
-  # count       = local.network_mode == "awsvpc" ? 1 : 0
-  count       = local.uses_alb && local.network_mode == "awsvpc" ? 1 : 0
+  count       = local.uses_lb && local.network_mode == "awsvpc" ? 1 : 0
   description = "security group for ${var.name} service"
   name        = var.name
   vpc_id      = data.aws_subnet.selected[0].vpc_id
