@@ -79,6 +79,10 @@ locals {
   )
 }
 
+output "zzz_sg" {
+  value = local.security_groups
+}
+
 # autoscaling
 locals {
   scale_down_name = lookup(var.autoscale, "autoscale_scale_down", "${var.name}-down")

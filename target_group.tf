@@ -49,9 +49,9 @@ resource "aws_lb_target_group" "default" {
   tags = merge({ "Name" = var.name }, var.tags)
 }
 
-#:  resource "aws_lb_target_group_attachment" "default" {
-#:    for_each         = local.has_nlb ? toset([aws_lb_target_group.default[0].arn]) : toset()
-#:    target_group_arn = each.value
-#:    target_id        = aws_ecs_service.awsvpc_lb[0].id
-#:    # port             = 80
-#:  }
+#resource "aws_lb_target_group_attachment" "default" {
+# for_each         = local.uses_nlb ? toset([aws_lb_target_group.default[0].arn]) : toset()
+# target_group_arn = each.value
+# target_id        = aws_ecs_service.awsvpc_lb[0].id
+# # port             = 80
+#}

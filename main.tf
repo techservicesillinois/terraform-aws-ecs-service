@@ -70,7 +70,7 @@ resource "aws_ecs_service" "awsvpc_all" {
 # with a load balancer (e.g., works with FARGATE and EC2 launch_type).
 
 resource "aws_ecs_service" "awsvpc_lb" {
-  count = local.network_mode == "awsvpc" && length(var.load_balancer) > 0 && length(var.service_discovery) == 0 ? 1 : 0
+  count = local.network_mode == "awsvpc" && local.uses_lb && length(var.service_discovery) == 0 ? 1 : 0
 
   name            = var.name
   launch_type     = var.launch_type
