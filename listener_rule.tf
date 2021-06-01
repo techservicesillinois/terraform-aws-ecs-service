@@ -10,13 +10,15 @@ resource "aws_alb_listener_rule" "default" {
   }
 
   condition {
-    field  = "path-pattern"
-    values = [local.path_pattern]
+    path_pattern {
+      values = [local.path_pattern]
+    }
   }
 
   condition {
-    field  = "host-header"
-    values = [local.host_header]
+    host_header {
+      values = [local.host_header]
+    }
   }
 }
 
@@ -31,12 +33,14 @@ resource "aws_alb_listener_rule" "set_priority" {
   }
 
   condition {
-    field  = "path-pattern"
-    values = [local.path_pattern]
+    path_pattern {
+      values = [local.path_pattern]
+    }
   }
 
   condition {
-    field  = "host-header"
-    values = [local.host_header]
+    host_header {
+      values = [local.host_header]
+    }
   }
 }
