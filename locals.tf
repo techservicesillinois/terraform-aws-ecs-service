@@ -62,9 +62,9 @@ locals {
       lookup(var.network_configuration, "security_group_names", ""),
     ),
   )
-  subnets = compact(split(" ", lookup(var.network_configuration, "subnets", "")))
-  tier    = lookup(var.network_configuration, "tier", "")
-  vpc     = lookup(var.network_configuration, "vpc", "")
+  subnets     = compact(split(" ", lookup(var.network_configuration, "subnets", "")))
+  subnet_type = lookup(var.network_configuration, "subnet_type", "")
+  vpc         = lookup(var.network_configuration, "vpc", "")
 }
 
 locals {

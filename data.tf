@@ -1,6 +1,6 @@
 locals {
   all_subnets = distinct(
-    concat(flatten(data.aws_subnet_ids.selected.*.ids), local.subnets),
+    concat(flatten(module.get-subnets.subnets.ids), local.subnets),
   )
   lb_vpc_id     = element(concat(data.aws_lb.selected.*.vpc_id, [""]), 0)
   subnet_vpc_id = element(concat(data.aws_subnet.selected.*.vpc_id, [""]), 0)
@@ -12,6 +12,13 @@ data "aws_ecs_cluster" "selected" {
   cluster_name = var.cluster
 }
 
+
+module "get-subnets" {
+  source = "github.com/techservicesillinois/terraform-aws-util//modules/get-subnets?ref=v3.0.4"
+
+  subnet_type = local.subnet_type
+  vpc         = local.vpc
+}
 ## LB data sources
 
 data "aws_lb" "selected" {
@@ -40,21 +47,4 @@ data "aws_security_group" "selected" {
 data "aws_subnet" "selected" {
   count = length(var.network_configuration) > 0 ? 1 : 0
   id    = local.all_subnets[0]
-}
-
-data "aws_vpc" "selected" {
-  count = local.tier != "" ? 1 : 0
-
-  tags = {
-    Name = local.vpc
-  }
-}
-
-data "aws_subnet_ids" "selected" {
-  count  = local.tier != "" ? 1 : 0
-  vpc_id = data.aws_vpc.selected[0].id
-
-  tags = {
-    Tier = local.tier
-  }
 }
