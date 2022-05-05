@@ -74,7 +74,7 @@ module "service_name" {
 
   network_configuration = {
     assign_public_ip = true
-    tier             = "public"
+    subnet_type      = "public"
     vpc              = "my-vpc"
   }
 }
@@ -92,8 +92,8 @@ module "service_name" {
   }
 
   network_configuration = {
-    tier = "nat"
-    vpc  = "my-vpc"
+    subnet_id = "campus"
+    vpc       = "my-vpc"
   }
 }
 ```
@@ -473,12 +473,12 @@ EC2 Container Service Developer Guide.](https://docs.aws.amazon.com/AmazonECS/la
 
 A `network_configuration` block supports the following:
 
-* `tier` - (Optional) A subnet tier tag (e.g., public, private, nat) to determine subnets to be associated with the task orservice.
+* `subnet_type` - (Required) Subnet type (e.g., 'campus', 'private', 'public') for resource placement.
 
 * `vpc` - (Optional) The name of the virtual private cloud to be associated with the task or
-service. **NOTE:** Required when using `tier`.
+service. **NOTE:** Required when using `subnet_type`.
 
-* `subnets` - (Required) The subnet IDs to associated with the task or service. **NOTE:** Optional when using `tier`.
+* `subnets` - (Required) The subnet IDs to associated with the task or service. **NOTE:** Optional when using `subnet_type`.
 
 * `security_groups` - (Optional) The security groups associated with
 the task or service. If you do not specify a security group, the
@@ -503,9 +503,9 @@ For more information, see [Task Networking](https://docs.aws.amazon.com/AmazonEC
 > Note: `network_configuration` is only supported when `network_mode`
 > is `aws_vpc`.
 >
-> Note: The `tier` and `subnet` attributes can be used together. In this case the subnets
+> Note: The `subnet_type` and `subnet` attributes can be used together. In this case the subnets
 > to be associated with the service consist of the union of the subnets defined explicitly
-> in `subnet` and derived from `tier` and `vpc`.
+> in `subnet` and derived from `subnet_type` and `vpc`.
 
 `service_discovery`
 -----------------
