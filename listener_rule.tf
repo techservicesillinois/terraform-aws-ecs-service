@@ -1,7 +1,12 @@
-# A listener rule is created only if a load balancer is in use
+# Listener rule is created only if a load balancer is specified.
+
+# NOTE: These mutually-exclusive resources can't be combined because a
+# null value is treated by Terraform differently than simply not
+# specifying a priority.
 
 resource "aws_alb_listener_rule" "default" {
-  count        = length(var.load_balancer) > 0 && local.priority == 0 ? 1 : 0
+  count = try(var.load_balancer.priority == null, false) ? 1 : 0
+
   listener_arn = data.aws_lb_listener.selected[0].arn
 
   action {
@@ -11,21 +16,22 @@ resource "aws_alb_listener_rule" "default" {
 
   condition {
     path_pattern {
-      values = [local.path_pattern]
+      values = [var.load_balancer.path_pattern]
     }
   }
 
   condition {
     host_header {
-      values = [local.host_header]
+      values = [var.load_balancer.host_header]
     }
   }
 }
 
 resource "aws_alb_listener_rule" "set_priority" {
-  count        = length(var.load_balancer) > 0 && local.priority > 0 ? 1 : 0
+  count = try(var.load_balancer.priority != null, false) ? 1 : 0
+
   listener_arn = data.aws_lb_listener.selected[0].arn
-  priority     = local.priority
+  priority     = var.load_balancer.priority
 
   action {
     type             = "forward"
@@ -34,13 +40,13 @@ resource "aws_alb_listener_rule" "set_priority" {
 
   condition {
     path_pattern {
-      values = [local.path_pattern]
+      values = [var.load_balancer.path_pattern]
     }
   }
 
   condition {
     host_header {
-      values = [local.host_header]
+      values = [var.load_balancer.host_header]
     }
   }
 }

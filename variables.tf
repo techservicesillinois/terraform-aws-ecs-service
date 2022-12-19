@@ -3,23 +3,72 @@
 ##########################################################################
 # https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_CreateService.html
 
-#### Required
-
-variable "name" {
-  description = "The name of the ECS service"
+variable "alias" {
+  description = "Route 53 alias block"
+  type = object({
+    domain   = optional(string)
+    hostname = optional(string)
+  })
+  default = null
 }
 
-#### Optional
+# Autoscaling configuration.
 
-variable "task_definition" {
-  description = "Task definition block (map)"
-  type        = map(any)
-  default     = {}
+variable "autoscale" {
+  description = "Autoscale configuration"
+  type = object({
+    max_capacity = number
+    min_capacity = number
+    metrics = map(
+      object({
+        actions_enabled         = optional(bool, true)
+        adjustment_type         = string
+        cooldown                = optional(number, null)
+        datapoints_to_alarm     = optional(number, null)
+        evaluation_periods      = number
+        metric_aggregation_type = string
+        period                  = number
+        statistic               = string
+        # TODO: Validate that either lower or upper bound are non-null.
+        down = object({
+          comparison_operator         = string
+          metric_interval_lower_bound = optional(number, null)
+          metric_interval_upper_bound = optional(number, null)
+          scaling_adjustment          = number
+          threshold                   = number
+        })
+        # TODO: Validate that either lower or upper bound are non-null.
+        up = object({
+          comparison_operator         = string
+          metric_interval_lower_bound = optional(number, null)
+          metric_interval_upper_bound = optional(number, null)
+          scaling_adjustment          = number
+          threshold                   = number
+        })
+      })
+    )
+  })
+  default = null
+
+  validation {
+    condition     = var.autoscale == null || try(length(var.autoscale.metrics) > 0, true)
+    error_message = "The 'autoscale' block must have one or more metrics"
+  }
 }
 
-variable "task_definition_arn" {
-  description = " The family and revision (family:revision) or full ARN of the task definition to run in the ECS service."
-  default     = ""
+variable "cluster" {
+  description = "ECS cluster name"
+  default     = "default"
+}
+
+variable "deployment_maximum_percent" {
+  description = "The upper limit, as a percentage of the service's desired_count, of the number of running tasks that can be running in a service during a deployment."
+  default     = null
+}
+
+variable "deployment_minimum_healthy_percent" {
+  description = "The lower limit, as a percentage of the service's desired_count, of the number of running tasks that must remain running and healthy in a service during a deployment."
+  default     = null
 }
 
 variable "desired_count" {
@@ -27,31 +76,20 @@ variable "desired_count" {
   default     = 1
 }
 
-variable "launch_type" {
-  description = "The launch type on which to run the service. The valid values are EC2 and FARGATE."
-  default     = "FARGATE"
-}
-
-variable "cluster" {
-  description = "A name of an ECS cluster"
-  default     = "default"
-}
-
-variable "deployment_maximum_percent" {
-  description = "The upper limit, as a percentage of the service's desired_count, of the number of running tasks that can be running in a service during a deployment."
-  default     = 200
-}
-
-variable "deployment_minimum_healthy_percent" {
-  description = "The lower limit, as a percentage of the service's desired_count, of the number of running tasks that must remain running and healthy in a service during a deployment."
-  default     = 50
-}
-
-variable "ordered_placement_strategy" {
-  # This variable may not be used with Fargate!
-  description = "Service level strategy rules that are taken into consideration during task placement. List from top to bottom in order of precedence. The maximum number of ordered_placement_strategy blocks is 5."
-  type        = list(string)
-  default     = []
+variable "health_check" {
+  description = "Health check block"
+  type = object({
+    enabled             = optional(bool)
+    healthy_threshold   = optional(number)
+    interval            = optional(number)
+    matcher             = optional(string)
+    path                = optional(string)
+    port                = optional(number)
+    protocol            = optional(string)
+    timeout             = optional(number)
+    unhealthy_threshold = optional(number)
+  })
+  default = null
 }
 
 variable "health_check_grace_period_seconds" {
@@ -59,54 +97,150 @@ variable "health_check_grace_period_seconds" {
   default     = 0
 }
 
+variable "launch_type" {
+  description = "Launch type for the service. Valid values are EC2 and FARGATE."
+  default     = "FARGATE"
+
+  validation {
+    condition     = try(contains(["EC2", "FARGATE"], var.launch_type), true)
+    error_message = "The 'launch_type' is not one of the valid values 'EC2' or 'FARGATE'."
+  }
+}
+
+# FIXME: Valid values for priority are natural numbers between 1 and 50000
 variable "load_balancer" {
-  description = "A load balancer block"
-  type        = map(string)
-  default     = {}
+  description = "Load balancer block"
+  type = object({
+    certificate_domain   = optional(string)
+    container_name       = optional(string)
+    container_port       = optional(number)
+    deregistration_delay = optional(number)
+    host_header          = optional(string)
+    name                 = optional(string)
+    path_pattern         = optional(string, "*")
+    port                 = optional(number, 443)
+    priority             = optional(number)
+    security_group_id    = optional(string)
+  })
+  default = null
+
+  # Validate that load balancer name is specified if load_balancer block is present.
+
+  validation {
+    condition     = try(var.load_balancer.name != null && var.load_balancer.name != "", true)
+    error_message = "If load_balancer block is specified, a load balancer name must be specified."
+  }
+
+  # Validate that priority is in range if load_balancer block is present.
+
+  validation {
+    # condition     = var.load_balancer == null || try(var.load_balancer.priority > 0 && var.load_balancer.priority < 50000, true)
+    condition     = try(var.load_balancer.priority > 0 && var.load_balancer.priority < 50000, true)
+    error_message = "If specified, priority must be in range 1 to 50000."
+  }
+}
+
+variable "name" {
+  description = "ECS service name"
+}
+
+variable "network_configuration" {
+  description = "Network configuration block"
+  type = object({
+    assign_public_ip     = optional(bool, false)
+    ports                = optional(list(number), [])
+    security_group_ids   = optional(list(string), [])
+    security_group_names = optional(list(string), [])
+    subnet_ids           = optional(list(string), [])
+    subnet_type          = optional(string)
+    vpc                  = optional(string)
+  })
+  default = null
+
+  # Validate that either subnet_ids or both subnet_type and vpc are defined.
+
+  validation {
+    # TODO: This validation rule should be made more robust.
+    condition     = var.network_configuration == null || can(length(var.network_configuration.subnet_ids) > 0 || (var.network_configuration.subnet_type != null && var.network_configuration.vpc != null))
+    error_message = "The 'network_configuration' block must define both 'subnet_type' and 'vpc', or must define 'subnet_ids'."
+  }
+
+  # Validate subnet_type (if specified).
+
+  validation {
+    condition     = try(contains(["campus", "private", "public"], var.network_configuration.subnet_type), true)
+    error_message = "The 'subnet_type' specified in the 'network_configuration' block is not one of the valid values 'campus', 'private', or 'public'."
+  }
+}
+
+variable "ordered_placement_strategy" {
+  description = "Strategy rules taken into consideration during task placement, in descending order of precedence. Not compatible with Fargate."
+  type = list(object({
+    type  = string
+    field = optional(string)
+  }))
+  default = null
 }
 
 variable "placement_constraints" {
-  # This variables may not be used with Fargate!
-  description = "Rules that are taken into consideration during task placement. Maximum number of placement_constraints is 10."
-  type        = list(string)
-  default     = []
+  description = "Rules taken into consideration during task placement. Not compatible with Fargate."
+  type = list(object({
+    type       = string
+    expression = optional(string)
+  }))
+  default = null
 }
 
 variable "platform_version" {
-  # Applies to Fargate only.
-  description = "FARGATE platform version on which to run your service."
+  description = "Platform version (only applies to Fargate)."
   type        = string
   default     = null
 }
 
-variable "network_configuration" {
-  description = "A network configuration block"
-  type        = map(string)
-  default     = {}
-}
-
 variable "service_discovery" {
-  description = "A service discovery block"
-  type        = map(any)
-  default     = {}
+  description = "Service discovery block"
+  type = object({
+    health_check_config = optional(object({
+      failure_threshold = optional(number)
+      resource_path     = optional(string)
+      type              = optional(string)
+    }))
+    health_check_custom_config = optional(object({
+      failure_threshold = optional(number) # Forces new resource per Terraform docs.
+    }))
+    name           = optional(string)
+    namespace_id   = string
+    routing_policy = optional(string, "MULTIVALUE")
+    ttl            = optional(number, 60)
+    type           = optional(string, "A")
+  })
+  default = null
 }
 
-variable "service_discovery_health_check_config" {
-  description = "A service discovery health check config block"
+variable "tags" {
+  description = "Tags to be applied to resources where supported"
   type        = map(string)
   default     = {}
 }
 
-variable "service_discovery_health_check_custom_config" {
-  description = "A service discovery health check custom config block"
-  type        = map(string)
-  default     = {}
+variable "task_definition" {
+  description = "Task definition block"
+  type = object({
+    container_definition_file = optional(string)
+    cpu                       = optional(number)           # Required for Fargate.
+    memory                    = optional(number)           # Required for Fargate.
+    network_mode              = optional(string, "awsvpc") # Normal use case.
+    task_role_arn             = optional(string)
+  })
+  default = null
 }
 
-##########################################################################
-# additional load balancer configuration
-##########################################################################
+variable "task_definition_arn" {
+  description = " The family and revision (family:revision) or full ARN of the task definition for the ECS service"
+  default     = null
+}
 
+# FIXME: See if below statement is still true, and convert to object.
 # stickiness MUST have a default otherwise Terraform will fail when
 # the map is not defined!
 variable "stickiness" {
@@ -119,18 +253,8 @@ variable "stickiness" {
   }
 }
 
-variable "health_check" {
-  description = "A health check block."
-  type        = map(string)
-  default     = {}
-}
-
-##########################################################################
-# additonal task default configuration
-##########################################################################
-
 variable "volume" {
-  description = "A list of volume blocks that containers in your task may use."
+  description = "A list of volume blocks that containers may use"
   type = list(object({
     name      = string
     host_path = string
@@ -149,31 +273,10 @@ variable "volume" {
   default = []
 }
 
-##########################################################################
-# misc definition
-##########################################################################
+# Debugging.
 
-variable "tags" {
-  description = "Tags to be applied to resources where supported"
-  type        = map(string)
-  default     = {}
-}
-
-##########################################################################
-# Route 53 configuration
-##########################################################################
-
-variable "alias" {
-  description = "Route 53 alias block"
-  type        = map(string)
-  default     = {}
-}
-
-##########################################################################
-# AutoScaling Configuration
-##########################################################################
-variable "autoscale" {
-  description = "An autoscale block"
-  type        = map(string)
-  default     = {}
+variable "_debug" {
+  description = "Produce debug output (boolean)"
+  type        = bool
+  default     = false
 }

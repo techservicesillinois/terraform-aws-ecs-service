@@ -1,25 +1,25 @@
-data "aws_route53_zone" "selected" {
-  count = length(var.alias) > 0 && length(var.load_balancer) > 0 ? 1 : 0
+locals {
+  internal_lb = one(data.aws_lb.selected.*.internal)
+}
 
-  name         = local.alias_domain
-  vpc_id       = local.internal_lb == true ? local.lb_vpc_id : ""
+data "aws_route53_zone" "selected" {
+  count = var.alias != null && var.load_balancer != null ? 1 : 0
+
+  name         = var.alias.domain
+  vpc_id       = local.internal_lb ? one(data.aws_lb.selected.*.vpc_id) : null
   private_zone = local.internal_lb
 }
 
-locals {
-  internal_lb = element(concat(data.aws_lb.selected.*.internal, [""]), 0)
-}
-
 resource "aws_route53_record" "default" {
-  count = length(var.alias) > 0 && length(var.load_balancer) > 0 ? 1 : 0
+  count = var.alias != null && var.load_balancer != null ? 1 : 0
 
   zone_id = data.aws_route53_zone.selected[0].zone_id
-  name    = local.alias_hostname
+  name    = var.alias.hostname
   type    = "A"
 
   alias {
-    name                   = element(concat(data.aws_lb.selected.*.dns_name, [""]), 0)
-    zone_id                = element(concat(data.aws_lb.selected.*.zone_id, [""]), 0)
+    name                   = one(data.aws_lb.selected.*.dns_name)
+    zone_id                = one(data.aws_lb.selected.*.zone_id)
     evaluate_target_health = true
   }
 }

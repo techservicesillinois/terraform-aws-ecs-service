@@ -1,102 +1,114 @@
-######################################################################################
-####################### AUTO SCALING & CLOUD WATCH ALARMS ############################
-########## The autoscaling policies to scale the ecs service up and down. ############
-######################################################################################
-
-# CLOUDWATCH ALARM to monitor the memory utilization of a service
-resource "aws_cloudwatch_metric_alarm" "alarm_scale_down" {
-  count             = length(var.autoscale) > 0 ? 1 : 0
-  alarm_description = "Scale down alarm for ${var.name}"
-  namespace         = "AWS/ECS"
-  alarm_name        = local.scale_down_name
-  alarm_actions     = [aws_appautoscaling_policy.policy_scale_down[0].arn]
-
-  comparison_operator = var.autoscale["scale_down_comparison_operator"]
-  threshold           = var.autoscale["scale_down_threshold"]
-  evaluation_periods  = var.autoscale["evaluation_periods"]
-  metric_name         = var.autoscale["metric_name"]
-  period              = lookup(var.autoscale, "period", 180)
-  statistic           = lookup(var.autoscale, "statistic", "Average")
-  datapoints_to_alarm = lookup(var.autoscale, "datapoints_to_alarm", 3)
-
-  dimensions = {
-    ClusterName = var.cluster
-    ServiceName = var.name
-  }
+locals {
+  autoscale_metrics = { for k in try(keys(var.autoscale.metrics), {}) : k => var.autoscale.metrics[k] }
 }
 
-# CLOUDWATCH ALARM  to monitor memory utilization of a service
-resource "aws_cloudwatch_metric_alarm" "alarm_scale_up" {
-  count             = length(var.autoscale) > 0 ? 1 : 0
-  alarm_description = "Scale up alarm for ${var.name}"
-  namespace         = "AWS/ECS"
-  alarm_name        = local.scale_up_name
-  alarm_actions     = [aws_appautoscaling_policy.policy_scale_up[0].arn]
+# Autoscaling target.
 
-  comparison_operator = var.autoscale["scale_up_comparison_operator"]
-  threshold           = var.autoscale["scale_up_threshold"]
-  evaluation_periods  = var.autoscale["evaluation_periods"]
-  metric_name         = var.autoscale["metric_name"]
-  period              = lookup(var.autoscale, "period", 180)
-  statistic           = lookup(var.autoscale, "statistic", "Average")
-  datapoints_to_alarm = lookup(var.autoscale, "datapoints_to_alarm", 3)
+# TODO: Study (and document) how min_capacity and max_capacity interact with scaleable_dimension.
 
-  dimensions = {
-    ClusterName = var.cluster
-    ServiceName = var.name
-  }
-}
+resource "aws_appautoscaling_target" "default" {
+  for_each = var.autoscale != null ? { autoscale = var.autoscale } : {}
 
-resource "aws_appautoscaling_target" "ecs_target" {
-  count        = length(var.autoscale) > 0 ? 1 : 0
-  max_capacity = lookup(var.autoscale, "autoscale_max_capacity", 5)
-  min_capacity = lookup(var.autoscale, "service_desired_count", 1)
-  resource_id  = "service/${var.cluster}/${var.name}"
-  role_arn = format(
-    "arn:aws:iam::%s:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService",
-    data.aws_caller_identity.current.account_id,
-  )
-
+  max_capacity       = each.value.max_capacity
+  min_capacity       = each.value.min_capacity
+  resource_id        = format("service/%s/%s", var.cluster, var.name)
+  role_arn           = format("arn:aws:iam::%s:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService", data.aws_caller_identity.current.account_id)
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
 }
 
-#Set up the memory utilization policy for scale down when the cloudwatch alarm gets triggered.
-resource "aws_appautoscaling_policy" "policy_scale_down" {
-  count              = length(var.autoscale) > 0 ? 1 : 0
-  name               = local.scale_down_name
-  resource_id        = aws_appautoscaling_target.ecs_target[0].resource_id
-  scalable_dimension = aws_appautoscaling_target.ecs_target[0].scalable_dimension
-  service_namespace  = aws_appautoscaling_target.ecs_target[0].service_namespace
+# Scale-down alarm for each metric.
+
+resource "aws_cloudwatch_metric_alarm" "down" {
+  for_each = local.autoscale_metrics
+
+  actions_enabled     = each.value.actions_enabled
+  alarm_actions       = [aws_appautoscaling_policy.down[each.key].arn]
+  alarm_description   = format("scale-down alarm for %s on %s metric", var.name, each.key)
+  alarm_name          = format("ecs-%s-%s-down", var.name, lower(each.key))
+  comparison_operator = each.value.down.comparison_operator
+  datapoints_to_alarm = each.value.datapoints_to_alarm
+  evaluation_periods  = each.value.evaluation_periods
+  metric_name         = each.key
+  namespace           = "AWS/ECS"
+  period              = each.value.period
+  statistic           = each.value.statistic
+  tags                = merge({ Name = var.name }, var.tags)
+  threshold           = each.value.down.threshold
+
+  dimensions = {
+    ClusterName = var.cluster
+    ServiceName = var.name
+  }
+}
+
+# Scale-up alarm for each metric.
+
+resource "aws_cloudwatch_metric_alarm" "up" {
+  for_each = local.autoscale_metrics
+
+  actions_enabled     = each.value.actions_enabled
+  alarm_actions       = [aws_appautoscaling_policy.up[each.key].arn]
+  alarm_description   = format("scale-up alarm for %s on %s metric", var.name, each.key)
+  alarm_name          = format("ecs-%s-%s-up", var.name, lower(each.key))
+  comparison_operator = each.value.up.comparison_operator
+  datapoints_to_alarm = each.value.datapoints_to_alarm
+  evaluation_periods  = each.value.evaluation_periods
+  metric_name         = each.key
+  namespace           = "AWS/ECS"
+  period              = each.value.period
+  statistic           = each.value.statistic
+  tags                = merge({ Name = var.name }, var.tags)
+  threshold           = each.value.up.threshold
+
+  dimensions = {
+    ClusterName = var.cluster
+    ServiceName = var.name
+  }
+}
+
+# Scale-down policy for each metric.
+
+resource "aws_appautoscaling_policy" "down" {
+  for_each = local.autoscale_metrics
+
+  name               = format("ecs-%s-%s-down", var.name, lower(each.key))
+  resource_id        = aws_appautoscaling_target.default["autoscale"].resource_id
+  scalable_dimension = aws_appautoscaling_target.default["autoscale"].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.default["autoscale"].service_namespace
 
   step_scaling_policy_configuration {
-    adjustment_type         = var.autoscale["adjustment_type"]
-    cooldown                = var.autoscale["cooldown"]
-    metric_aggregation_type = lookup(var.autoscale, "aggregation_type", "Average")
+    adjustment_type         = each.value.adjustment_type
+    cooldown                = each.value.cooldown
+    metric_aggregation_type = each.value.metric_aggregation_type
 
     step_adjustment {
-      metric_interval_upper_bound = lookup(var.autoscale, "scale_down_interval_lower_bound", 0)
-      scaling_adjustment          = var.autoscale["scale_down_adjustment"]
+      metric_interval_lower_bound = each.value.down.metric_interval_lower_bound
+      metric_interval_upper_bound = each.value.down.metric_interval_upper_bound
+      scaling_adjustment          = each.value.down.scaling_adjustment
     }
   }
 }
 
-#Set up the memory utilization policy for scale up when the cloudwatch alarm gets triggered.
-resource "aws_appautoscaling_policy" "policy_scale_up" {
-  count              = length(var.autoscale) > 0 ? 1 : 0
-  name               = local.scale_up_name
-  resource_id        = aws_appautoscaling_target.ecs_target[0].resource_id
-  scalable_dimension = aws_appautoscaling_target.ecs_target[0].scalable_dimension
-  service_namespace  = aws_appautoscaling_target.ecs_target[0].service_namespace
+# Scale-up policy for each metric.
+
+resource "aws_appautoscaling_policy" "up" {
+  for_each = local.autoscale_metrics
+
+  name               = format("ecs-%s-%s-up", var.name, lower(each.key))
+  resource_id        = aws_appautoscaling_target.default["autoscale"].resource_id
+  scalable_dimension = aws_appautoscaling_target.default["autoscale"].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.default["autoscale"].service_namespace
 
   step_scaling_policy_configuration {
-    adjustment_type         = var.autoscale["adjustment_type"]
-    cooldown                = var.autoscale["cooldown"]
-    metric_aggregation_type = lookup(var.autoscale, "aggregation_type", "Average")
+    adjustment_type         = each.value.adjustment_type
+    cooldown                = each.value.cooldown
+    metric_aggregation_type = each.value.metric_aggregation_type
 
     step_adjustment {
-      metric_interval_lower_bound = lookup(var.autoscale, "scale_up_interval_lower_bound", 1)
-      scaling_adjustment          = var.autoscale["scale_up_adjustment"]
+      metric_interval_lower_bound = each.value.up.metric_interval_lower_bound
+      metric_interval_upper_bound = each.value.up.metric_interval_upper_bound
+      scaling_adjustment          = each.value.up.scaling_adjustment
     }
   }
 }
