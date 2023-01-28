@@ -231,6 +231,11 @@ variable "task_definition" {
     memory                    = optional(number)           # Required for Fargate.
     network_mode              = optional(string, "awsvpc") # Normal use case.
     task_role_arn             = optional(string)
+    template_variables = optional(object({
+      docker_tag  = string
+      region      = string
+      registry_id = number
+    }))
   })
   default = null
 }

@@ -10,8 +10,12 @@
 # the TOTAL set here.
 # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_size
 
+# Compute container definition file name, then determine whether it's
+# a template or simply a json file.
+
 locals {
-  container_definition_file = var.task_definition.container_definition_file != null ? var.task_definition.container_definition_file : "containers.json"
+  container_definition_file = var.task_definition.template_variables != null ? (var.task_definition.container_definition_file != null ? var.task_definition.container_definition_file : "containers.json.tftpl") : (var.task_definition.container_definition_file != null ? var.task_definition.container_definition_file : "containers.json")
+  container_definitions     = endswith(local.container_definition_file, ".tftpl") ? try(templatefile(local.container_definition_file, var.task_definition.template_variables), false) : file(local.container_definition_file)
 }
 
 # The task_definition_arn local variable contains the ARN specified by caller, or the
@@ -25,7 +29,7 @@ resource "aws_ecs_task_definition" "default" {
   for_each = toset(var.task_definition_arn == null ? [var.launch_type] : [])
 
   family                = var.name
-  container_definitions = file(local.container_definition_file)
+  container_definitions = local.container_definitions
   task_role_arn         = var.task_definition.task_role_arn
   execution_role_arn = format(
     "arn:aws:iam::%s:role/ecsTaskExecutionRole",
