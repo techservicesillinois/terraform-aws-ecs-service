@@ -51,6 +51,14 @@ output "_autoscale_metrics" {
   value = (var._debug) ? local.autoscale_metrics : null
 }
 
+output "_container_definition_file" {
+  value = (var._debug) ? local.container_definition_file : null
+}
+
+output "_container_definitions" {
+  value = (var._debug) ? local.container_definitions : null
+}
+
 output "_health_check" {
   value = (var._debug) ? var.health_check : null
 }
