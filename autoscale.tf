@@ -11,7 +11,7 @@ resource "aws_appautoscaling_target" "default" {
 
   max_capacity       = each.value.max_capacity
   min_capacity       = each.value.min_capacity
-  resource_id        = format("service/%s/%s", var.cluster, var.name)
+  resource_id        = format("service/%s/%s", data.aws_ecs_cluster.selected.cluster_name, aws_ecs_service.default.name)
   role_arn           = format("arn:aws:iam::%s:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService", data.aws_caller_identity.current.account_id)
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
@@ -24,8 +24,8 @@ resource "aws_cloudwatch_metric_alarm" "down" {
 
   actions_enabled     = each.value.actions_enabled
   alarm_actions       = [aws_appautoscaling_policy.down[each.key].arn]
-  alarm_description   = format("scale-down alarm for %s on %s metric", var.name, each.key)
-  alarm_name          = format("ecs-%s-%s-down", var.name, lower(each.key))
+  alarm_description   = format("scale-down alarm for %s on %s metric", aws_ecs_service.default.name, each.key)
+  alarm_name          = format("ecs-%s-%s-down", aws_ecs_service.default.name, lower(each.key))
   comparison_operator = each.value.down.comparison_operator
   datapoints_to_alarm = each.value.datapoints_to_alarm
   evaluation_periods  = each.value.evaluation_periods
@@ -37,8 +37,8 @@ resource "aws_cloudwatch_metric_alarm" "down" {
   threshold           = each.value.down.threshold
 
   dimensions = {
-    ClusterName = var.cluster
-    ServiceName = var.name
+    ClusterName = data.aws_ecs_cluster.selected.cluster_name
+    ServiceName = aws_ecs_service.default.name
   }
 }
 
@@ -49,8 +49,8 @@ resource "aws_cloudwatch_metric_alarm" "up" {
 
   actions_enabled     = each.value.actions_enabled
   alarm_actions       = [aws_appautoscaling_policy.up[each.key].arn]
-  alarm_description   = format("scale-up alarm for %s on %s metric", var.name, each.key)
-  alarm_name          = format("ecs-%s-%s-up", var.name, lower(each.key))
+  alarm_description   = format("scale-up alarm for %s on %s metric", aws_ecs_service.default.name, each.key)
+  alarm_name          = format("ecs-%s-%s-up", aws_ecs_service.default.name, lower(each.key))
   comparison_operator = each.value.up.comparison_operator
   datapoints_to_alarm = each.value.datapoints_to_alarm
   evaluation_periods  = each.value.evaluation_periods
@@ -62,8 +62,8 @@ resource "aws_cloudwatch_metric_alarm" "up" {
   threshold           = each.value.up.threshold
 
   dimensions = {
-    ClusterName = var.cluster
-    ServiceName = var.name
+    ClusterName = data.aws_ecs_cluster.selected.cluster_name
+    ServiceName = aws_ecs_service.default.name
   }
 }
 
@@ -72,7 +72,7 @@ resource "aws_cloudwatch_metric_alarm" "up" {
 resource "aws_appautoscaling_policy" "down" {
   for_each = local.autoscale_metrics
 
-  name               = format("ecs-%s-%s-down", var.name, lower(each.key))
+  name               = format("ecs-%s-%s-down", aws_ecs_service.default.name, lower(each.key))
   resource_id        = aws_appautoscaling_target.default["autoscale"].resource_id
   scalable_dimension = aws_appautoscaling_target.default["autoscale"].scalable_dimension
   service_namespace  = aws_appautoscaling_target.default["autoscale"].service_namespace
@@ -95,7 +95,7 @@ resource "aws_appautoscaling_policy" "down" {
 resource "aws_appautoscaling_policy" "up" {
   for_each = local.autoscale_metrics
 
-  name               = format("ecs-%s-%s-up", var.name, lower(each.key))
+  name               = format("ecs-%s-%s-up", aws_ecs_service.default.name, lower(each.key))
   resource_id        = aws_appautoscaling_target.default["autoscale"].resource_id
   scalable_dimension = aws_appautoscaling_target.default["autoscale"].scalable_dimension
   service_namespace  = aws_appautoscaling_target.default["autoscale"].service_namespace
