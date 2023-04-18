@@ -2,55 +2,31 @@
 
 [![Terraform actions status](https://github.com/techservicesillinois/terraform-aws-ecs-service/workflows/terraform/badge.svg)](https://github.com/techservicesillinois/terraform-aws-ecs-service/actions)
 
-Provides an ECS service - effectively a task that is expected to
-run until an error occurs or a user terminates it (typically a
-webserver or a database). This module's primary intent is to make
-it easier to set up a load balanced service using an existing
-[Application Load
-Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html).
-If using a load balancer the module will automatically create a
-[listener rule](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-update-rules.html),
-a [target group](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-target-groups.html),
-and [security groups](https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_SecurityGroups.html)
-when in `awsvpc` mode.
-In addition, the module will automatically create a task definition
-if one is not supplied. This module does **not** support Amazon's
-[Classic Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/introduction.html)
-or
-[Network Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html).
+Provides a service running under Amazon Elastic Container Service (ECS). An ECS service is essentially a task such as a web service that is expected to run until the task exits. ECS is normally configured to automatically restart a failed task.
 
-See the [ECS Services section in Amazon's ECS developer guide](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html).
+ECS allows users to run Docker applications across a cluster of EC2 instances which provide compute power for the workload. Although running Docker containers is itself a straightforward process, configuration of the various infrastructure components (including integrating the containers with an optional application load balancer) is complex.
+
+This module's primary intent is to simplify setting up load-balanced services using a shared
+[application load balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html).
+The module also supports running tasks in non-load-balanced containers in addition to supporting public and private application load balancers (ALBs).
+
+ECS supports two launch types. The ECS launch type runs containerized services on a customer-managed ECS cluster. Fargate launch type uses an Amazon-managed cluster that allows customers to run containers without having to manage a cluster of their own.
+
+If using a load balancer, the module will create a
+[listener rule](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-update-rules.html), a [target group](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-target-groups.html),
+and [security groups](https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_SecurityGroups.html) when in `awsvpc` mode.
+In addition, the module will create a task definition
+if one is not supplied by the caller.
+
+This module does **not** support Amazon's
+[classic load balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/introduction.html)
+or
+[network load balancers](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html).
+
+For more details, see the [ECS Services section in Amazon's ECS developer guide](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html).
 
 Example Usage
 -----------------
-
-### The containers.json file
-
-For an ECS service that does *not* use an existing task definition, the
-set of containers that will comprise the service must be specified
-in the `container_definition_file` argument. This file is named
-`containers.json` by default, and must be a valid JSON document.
-
-Please note that this example contains only a small subset of the
-available parameters. For further information, see
-`container_definition_file` argument in the [Task
-definition](#task_definition) block.
-
-```json
-[
-  {
-    "name": "apache",
-    "image": "httpd",
-    "portMappings": [
-      {
-        "containerPort": 80
-      }
-    ]
-  }
-]
-
-```
-
 
 ### Simple Fargate service on a public subnet
 ```hcl
@@ -80,7 +56,7 @@ module "service_name" {
 }
 ```
 
-### Simple Fargate service on a private subnet with a NAT gateway with service discovery
+### Simple Fargate service on a private subnet with service discovery
 ```hcl
 module "service_name" {
   source = "git@github.com:techservicesillinois/terraform-aws-ecs-service//"
@@ -92,8 +68,8 @@ module "service_name" {
   }
 
   network_configuration = {
-    subnet_id = "campus"
-    vpc       = "my-vpc"
+    subnet_type = "private"
+    vpc         = "my-vpc"
   }
 }
 ```
@@ -166,171 +142,64 @@ module "service_name" {
   ]
 }
 ```
-### Configure autoscaling policy and cloudwatch alarms for ECS service
-```hcl
-autoscale = {
-  autoscale_max_capacity        = 5
-  metric_name                   = "CPUUtilization"
-  datapoints_to_alarm           = 1 
-  evaluation_periods            = 1
-  period                        = 60
-  cooldown                      = 60
-  adjustment_type               = "ChangeInCapacity"
-
-  ### Cloudwatch Alaram Scale up and Scale down ###
-  scale_up_threshold            = 70
-  scale_down_threshold          = 40
-
-  ### AutoScale Policy Scale up ###
-  scale_up_comparison_operator   = "GreaterThanOrEqualToThreshold"
-  scale_up_interval_lower_bound  = 1
-  scale_up_adjustment            = 1
-  
-  ### AutoScale Policy Scale down ###
-  scale_down_comparison_operator   = "LessThanThreshold"
-  scale_down_interval_lower_bound  = 0
-  scale_down_adjustment            = -1
-
-}
-```
 
 Argument Reference
 -----------------
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the service (up to 255 letters,
-numbers, hyphens, and underscores).
+* `alias` – (Optional) An [alias](#alias) block used to define a Route 53 alias record
+that points to the load balancer. Requires that a `load_balancer` block is definied.
 
-* `task_definition` - (Optional) A [Task definition](#task_definition)
-block. Task definition blocks are documented below.
+* `autoscale` – (Optional) An [autoscale](#autoscale) block is a complex data structure used to create an autoscaling configuration. Learn more about [ECS autoscaling](https://docs.aws.amazon.com/autoscaling/application/userguide/application-auto-scaling-step-scaling-policies.html). If no `autoscale` block is defined, no autoscaling takes place.
 
-* `task_definition_arn` - (Optional) The family and revision
-(`family:revision`) or full ARN of the task definition that you
-want to run in your service. If given, the task definition block is
-ignored.
+* `cluster` - (Optional) ECS cluster name. Defaults to `default`.
+
+* `deployment_maximum_percent` - (Optional) The upper limit, as a percentage of the service's desired_count, of the number of running tasks that can be running in a service during a deployment.
+
+* `deployment_minimum_healthy_percent` - (Optional) The lower limit, as a percentage of the service's `desired_count`, of the number of running tasks that must remain running and healthy in a service during a deployment
 
 * `desired_count` - (Optional) The number of instances of the task
 definition to place and keep running. Defaults to 1.
 
-* `launch_type` - (Optional) The launch type on which to run your
-service. The valid values are EC2 and FARGATE. Defaults to FARGATE.
+* `health_check` -  (Optional) A [health check block](#health_check).
+Health check blocks are documented below.
 
-* `cluster` - (Optional) ARN of an ECS cluster. Defaults to default.
+* `health_check_grace_period_seconds` - (Optional) Seconds to ignore failing load balancer health checks on newly instantiated tasks to prevent premature shutdown, up to 1800. Only valid for services configured to use load balancers.
 
-* `deployment_maximum_percent` - (Optional) The upper limit (as a
-percentage of the service's `desired_count`) of the number of running
-tasks that can be running in a service during a deployment. Defaults to 200%.
+* `launch_type` - (Optional) Launch type for the service. Valid values are EC2 and FARGATE. Defaults to FARGATE.
 
-* `deployment_minimum_healthy_percent` - (Optional) The lower limit
-(as a percentage of the service's `desired_count`) of the number of
-running tasks that must remain running and healthy in a service
-during a deployment. Defaults to 50%.
+* `load_balancer` - (Optional) A [load balancer block](#load_balancer).
+Load balancer blocks are documented below.
 
-* `ordered_placement_strategy` - (Optional) Service level strategy rules that
-are taken into consideration during task placement. The maximum
-number of `ordered_placement_strategy` blocks is 5. Defined [below](#ordered_placement_strategy).
+* `name` - (Required) ECS service name. Up to 255 letters (uppercase and lowercase), numbers, hyphens, and underscores are allowed. 
 
-* `health_check_grace_period_seconds` - (Optional) Seconds to ignore
-failing load balancer health checks on newly instantiated tasks to
-prevent premature shutdown, up to 1800. Only valid for services
-configured to use a load balancer.
-
-* `load_balancer` - (Optional) A [Load Balancer block](#load_balancer).
-Load balancer blocks documented below.
-
-* `placement_constraints` - (Optional) rules that are taken into
-consideration during task placement. Maximum number of
-`placement_constraints` is 10. Defined [below](#placement_constraints).
-
-* `network_configuration` - (Optional) A
-[Network Configuration](#network_configuration) block. This parameter
-is required for task definitions that use the `awsvpc` network mode
-to receive their own Elastic Network Interface, and it is not
+* `network_configuration` - (Optional) A [network configuration](#network_configuration) block is required for task definitions using the `awsvpc` network mode, in order that those tasks receive an [Elastic Network Interface](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html). The `network_configuration` block is **not**
 supported for other network modes.
 
-* `stickiness` - (Optional) A [Stickiness block](#stickiness).
-Stickiness blocks are documented below.
+* `ordered_placement_strategy` - (Optional) This variable is a list of strategy rules taken into consideration during task placement, in descending order of precedence. Not compatible with the FARGATE launch type. See the description of the [`ordered_placement_strategy`](#ordered_placement_strategy) block below.
 
-* `health_check` -  (Optional) A [Health Check block](#health_check).
-Health Check blocks are documented below.
+* `placement_constraints` - (Optional) Rules taken into consideration during task placement. Not compatible with the FARGATE launch type. The [`placement_constraints`](#placement_constraints) block is defined below.
 
-* `volume` - (Optional) A set of [volume blocks](#volume) that
-containers in your task may use. Volume blocks are documented below.
+* `platform_version` - (Optional) Platform version for FARGATE launch type. Not compatible with other launch types.
 
-* `service_discovery` - (Optional) A [Service Discovery](#service_discovery) block.
+* `service_discovery` - (Optional) A [service discovery](#service_discovery) block.
 This parameter is used to configure
-[Amazon Service Discovery](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-discovery.html)
-for the service.
+[Amazon Service Discovery](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-discovery.html) for the service.
 
-* `service_discovery_health_check_config` – (Optional) A [Service Discovery health check config](#service_discovery_health_check_config) block that contains settings for an
-optional health check. Only for public DNS namespaces.
+* `task_definition` - (Optional) The [task definition](#task_definition) block defines characteristics like CPU and memory for deploying Docker containers in Amazon ECS. See also [Amazon ECS task definitions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definitions.html).
 
-* `service_discovery_health_check_custom_config` – (Optional) A [Service Discovery
-custom health check config](#service_discovery_health_check_custom_config) block that
-contains settings for ECS managed health checks.
+* `task_definition_arn` - (Optional) An existing task definition, either in the format `family:revision`, or the full ARN to run with your service. If this variable is defined, the `task_definition` block is ignored.
 
-* `alias` – (Optional) An [alias](#alias) block used to define a Route 53 alias record
-that points to the load balancer. Requires that a `load_balancer` block is definied.
-
-* `autoscale` – (Optional) An [autoscale](#autoscale) block used to create an autoscaling configuration. Requires that a `autoscale` block is defined. Learn more about [ECS autoscaling](https://docs.aws.amazon.com/autoscaling/application/userguide/application-auto-scaling-step-scaling-policies.html).
+* `stickiness` - (Optional) If specified, the [`stickiness`](#stickiness) block causes the load balancer to bind client requests to the same target. Valid only with application load balancers. Not valid without an application load balancer.
 
 * `tags` - Tags to be applied to resources where supported.
 
-`autoscale`
-----------
+* `volume` - (Optional) List of objects defining which Docker or EFS volumes are available to containers The [`volume`](#volume) block is documented below.
 
-An `autoscale` block supports the following for autoscale up and down policies:
+### Debugging
 
-* `autoscale_scale_up` - (Optional) The name of the autoscaling policy for scale up. Default name is ('service name'-up) 
-
-* `autoscale_scale_down` - (Optional) The name of the autoscaling policy for scale down. Default name is ('service name'-down) 
-
-* `adjustment_type` - (Required) Specifies whether the adjustment is an absolute number or a percentage of the current capacity. Valid values are ChangeInCapacity, ExactCapacity, and PercentChangeInCapacity.
-
-* `cooldown` - (Required) Seconds between scaling actions.
-
-* `aggregation_type` - (Optional) The aggregation type for the policy's metrics. Valid values are "Minimum", "Maximum", and "Average". Default is "Average"
-
-* `scale_up_interval_lower_bound` - (Optional) Difference between the alarm `threshold` and the CloudWatch metric. For scale down the default is -infinity if not specified. 
-
-* `scale_down_interval_upper_bound` - (Optional) Difference between the alarm `threshold` and the CloudWatch metric. For scale up the default is infinity if not specified.
-
-* `scale_up_adjustment` - (Required) The number of members by which to scale, when the adjustment bounds are breached. A positive value scales up.
-
-* `scale_down_adjustment` - (Required) The number of members by which to scale, when the adjustment bounds are breached. A negative value scales down.
-
-The `ecs target` configuration for scale up and down needs the following:
-
-* `autoscale_max_capacity` - (Optional) The maximum number of instances to run. Defaults to 5.
-
-* `service_desired_count` - (Optional) The minimum number of instances of task definition to run. Defaults to 1.
-
-The `cloudwatch alarm` configuration for scale up and down needs the following:
-
-* `autoscale_scale_up` - (Optional) The name of the cloudwatch metric alarm for scale up. Default name is ('service name' up)
-
-* `autoscale_scale_down` - (Optional) The name of the cloudwatch metric alarm for scale down. Default name is ('service name' down) 
-
-* `scale_up_comparison_operator` - (Required) The arithmetic operation to use when comparing the specified `statistic` and `threshold` for scale up. The specified Statistic value is used as the first operand. supported are, GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold, LessThanOrEqualToThreshold.
-
-* `scale_down_comparison_operator` - (Required) The arithmetic operation to use when comparing the specified `statistic` and `threshold` for scale down. The specified Statistic value is used as the first operand. supported are, GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold, LessThanOrEqualToThreshold.
-
-* `scale_up_threshold` - (Required) The value against which the specified `statistic` is compared for scale up.
-
-* `scale_down_threshold` - (Required) The value against which the specified `statistic` is compared for scale down.
-
-* `evaluation_periods` - (Required) The number of periods over which data is compared to the specified `threshold`.
-
-* `metric_name` - (Required) The name of the metric. For ECS Service predefined metrics are CPUUtilization and MemoryUtilization.
-
-* `period` - (Optional) The period in seconds over which the specified statistic is applied.
-
-* `statistic` - (Optional) The statistic to apply to the alarm's associated metric. supported are: SampleCount, Average, Sum, Minimum, Maximum. Defaults to Average.
-
-* `datapoints_to_alarm` - (Optional) The Number of times the metric reaches the specified threshold to trigger an alarm. Note: `datapoints_to_alarm` must be less than or equal to the `evaluation_periods`.
-
-* `dimensions` - (Optional) The dimensions for the alarm's associated metric. The available dimensions for ECS service are ClusterName and ServiceName. 
+* `_debug` - (Optional) If set, produce verbose output for debugging.
 
 `alias`
 -------
@@ -343,73 +212,116 @@ is to be created.
 * `hostname` – (Optional) The name of the host to be created in the specified Route
 53 zone. Defaults to the value of the `name` attribute (i.e., the service name).
 
+`autoscale`
+----------
 
-`load_balancer`
------------------
+An `autoscale` block is a nested data structure that defines whether the container deployment supports autoscaling, and defines the scaling behavior. This module manages the application autoscaling target, CloudWatch metric alarms, and autoscaling policies required to configure an autoscaling application.
 
-A `load_balancer` block supports the following:
+[Service autoscaling](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-auto-scaling.html) for Amazon ECS is an advanced topic.
 
-* `name` - (Required) The name of the LB.
+### Configure autoscaling for ECS
 
-* `port` - (Optional) The port of the listener. Defaults to 443.
+> **NOTE:** The example autoscaling block below is wrapped inside the Terraform `module` block that invokes this module. This outer wrapper is omitted in this example for clarity.
 
-* `container_name` - (Required) The name of the container to associate
-with the load balancer as it appears in the container definition (by
-default, `containers.json`).
+```hcl
+  autoscale = {
+    max_capacity = 5
+    min_capacity = 1
+    metrics = {
+      CPUUtilization = {
+        adjustment_type         = "ChangeInCapacity"
+        cooldown                = 60
+        datapoints_to_alarm     = 1
+        evaluation_periods      = 1
+        metric_aggregation_type = "Average"
+        period                  = 60
+        statistic               = "Average"
 
-* `container_port` - (Required) The port on the container to associate
-with the load balancer as it appears in the container definition (by
-default, `containers.json`).
+        down = {
+          comparison_operator         = "LessThanThreshold"
+          metric_interval_upper_bound = 0
+          scaling_adjustment          = -1
+          threshold                   = 40
+        }
 
-* `certificate_domain` - (Optional) The domain name associated with an Amazon Certificate Manager (ACM) certificate. If specified, the certificate is looked up by the domain name, and the resulting certificate ARN is associated with the listener for the ECS service.
+        up = {
+          comparison_operator         = "GreaterThanOrEqualToThreshold"
+          metric_interval_lower_bound = 1
+          scaling_adjustment          = 1
+          threshold                   = 70
+        }
+      }
+```
 
-* `host_header` - (Required) A [hostname condition](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html#host-conditions)
-that defines a rule to forward requests to the service's target group.
+The top-level `autoscale` object consists of three input arguments used to configure the application autoscaling target:
 
-* `path_pattern` - (Optional) A [path condition](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html#path-conditions)
-that defines a rule to forward requests based on the URL path.
-Defaults to '*'.
+* `max_capacity` - (Required) Specifies the maximum capacity, namely the largest number of tasks that ECS will deploy. A value of `5` means that ECS will scale up to no more than five tasks.
 
-* `deregistration_delay` - (Optional) The amount time for Elastic Load Balancing to wait before changing the state of a deregistering target from draining to unused. The range is 0-3600 seconds. The default value is 300 seconds.
+* `min_capacity` - (Required) Specifies the minimum capacity, namely the largest number of tasks that ECS will deploy. A value of `2` means that ECS will scale down to no fewer than two tasks.
 
-* `security_group_id` - (Optional) The Security Group ARN associated with the Load Balancer. If not specified it is looked up by the `name` of the Load Balancer.
+* `metrics` - (Required) A map of [autoscaling metrics](#autoscalemetrics). Each entry in this map consists of a key specifying an autoscaling metric. See [Amazon ECS CloudWatch metrics](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cloudwatch-metrics.html#service_utilization). The value stored under each key in the `metrics` sub-object is itself another sub-object that defines how the specified metric is evaluated by ECS.
 
-* `priority` - (Optional) The priority for the rule between 1 and 50000.
-Leaving it unset will automatically set the rule with next
-available priority after currently existing highest rule. A listener
-can't have multiple rules with the same priority.
+> **NOTE:** At this time, this module is limited to the two CloudWatch metrics `CPUUtilization` and `MemoryUtilization` defined in the `AWS/ECS` namespace. As a result, the dimensions `ClusterName` and `ServiceName` associated with that namespace are "hardwired" into this module. This restriction will be eliminated in a future version of this module, although that will require an even deeper data structure.
 
-> Note: As a result of an AWS limitation, a single load_balancer
-> can be attached to the ECS service at most. See [related docs](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-load-balancing.html#load-balancing-concepts).
+`autoscale.metrics`
+-------------------
 
-`stickiness`
------------------
+Each autoscaling `metrics` sub-object allows specifying the following arguments:
 
-A `stickiness` block supports the following:
+* `actions_enabled` - (Optional) Indicates whether or not actions should be executed during any changes to the alarm's state. Defaults to `true`.
 
-* type - (Required) The type of sticky sessions. The only current
-possible value is `lb_cookie`.
+* `adjustment_type` - (Required) Whether the adjustment is an absolute number or a percentage of the current capacity. 
 
-* cookie_duration - (Optional) The time period, in seconds, during
-which requests from a client should be routed to the same target.
-After this time period expires, the load balancer-generated cookie
-is considered stale. The range is 1 second to 1 week (604800 seconds).
-The default value is 1 day (86400 seconds).
+* `cooldown` - (Required) Amount of time, in seconds, after a scaling activity completes and before the next scaling activity can start.
 
-* enabled - (Optional) Boolean to enable / disable `stickiness`.
-Default is `true`
+* `datapoints_to_alarm` -  - (Optional) The number of datapoints that must be breaching the threshold to trigger the alarm.
 
+* `evaluation_periods` - (Required) The number of periods over which data is compared to the specified threshold.
+
+* `metric_aggregation_type` - (Optional) Aggregation type for the policy's metrics. In the absence of a value, AWS treats the aggregation type as "Average".
+
+* `period` - (Required) The period in seconds over which the specified statistic is applied.
+
+* `statistic` - (Required) The statistic (e.g., `Average`) to apply to the alarm's associated metric.
+
+* `down` - (Required) An object defining behavior for a scale-down alarm. See [`autoscale.metrics.down` and `autoscale.metrics.up`](#autoscalemetricsdown-and-autoscalemetricsup).
+
+* `up` - (Required) An object defining behavior for a scale-up alarm. See [`autoscale.metrics.down` and `autoscale.metrics.up`](#autoscalemetricsdown-and-autoscalemetricsup).
+
+`autoscale.metrics.down` and `autoscale.metrics.up`
+---------------------------------------------------
+
+The `autoscale.metrics.down` and `autoscale.metrics.up` sub-objects use the same input variables, albeit for scaling down and scaling up, respectively.
+
+* `comparison_operator` - (Required) The arithmetic operation to use when comparing the statistic and threshold.
+
+* `metric_interval_lower_bound` - (Optional) Lower bound for the difference between the alarm threshold and the CloudWatch metric. Without a value, AWS will treat this bound as negative infinity.
+
+* `metric_interval_upper_bound` - (Optional) Upper bound for the difference between the alarm threshold and the CloudWatch metric. Without a value, AWS will treat this bound as infinity. The upper bound must be greater than the lower bound.
+
+* `scaling_adjustment` - (Required) Number of members by which to scale, when the adjustment bounds are breached. A positive value scales up. A negative value scales down.
+
+* `threshold` - (Required) The value against which the specified statistic is compared.
 
 `health_check`
 -----------------
 
 A `health_check` block supports the following:
 
-* `interval` - (Optional) The approximate amount of time, in seconds,
-between health checks of an individual target. Minimum value 5
-seconds, Maximum value 300 seconds. Default 30 seconds.
+* `enabled` - (Optional) Whether health checks are enabled. Defaults to `true`.
 
-* `path` - (Optional) The destination for the health check request. Default /.
+* `healthy_threshold` - (Optional) The number of consecutive health
+checks successes required before considering an unhealthy target
+healthy.
+
+* `interval` - (Optional) The approximate amount of time, in seconds,
+between health checks of an individual target.
+
+* `matcher` - (Optional) The HTTP codes to use when checking for a
+successful response from a target. You can specify multiple values
+(for example, "200,202") or a range of values (for example, "200-299").
+
+* `path` - (Optional) The destination for the health check request. Defaults to `/`.
 
 * `port` - (Optional) The port to use to connect with the target.
 Valid values are either ports 1-65536, or `container_port`. Defaults
@@ -419,28 +331,71 @@ to `container_port`.
 target. Defaults to HTTP.
 
 * `timeout` - (Optional) The amount of time, in seconds, during which
-no response means a failed health check. The range is 2 to 60 seconds
-and the default is 5 seconds.
-
-* `healthy_threshold` - (Optional) The number of consecutive health
-checks successes required before considering an unhealthy target
-healthy. Defaults to 3.
+no response means a failed health check.
 
 * `unhealthy_threshold` - (Optional) The number of consecutive health
 check failures required before considering the target unhealthy.
-Defaults to 3.
 
-* `matcher` - (Optional) The HTTP codes to use when checking for a
-successful response from a target. You can specify multiple values
-(for example, "200,202") or a range of values (for example, "200-299").
+`load_balancer`
+-----------------
+
+A `load_balancer` block may contain the following inputs:
+
+* `certificate_domain` - (Optional) The domain name associated with an Amazon Certificate Manager (ACM) certificate. If specified, the certificate is looked up by the domain name, and the resulting certificate is associated with the listener for the ECS service.
+
+* `container_name` - (Required) The name of the container to associate with the load balancer as specified in the container definition (`containers.json` by default).
+
+* `container_port` - (Required) The port on the container to associate with the load balancer as specified in the container definition (`containers.json` by default).
+
+* `deregistration_delay` - (Optional) The amount time for Elastic Load Balancing to wait before changing the state of a deregistering target from draining to unused.
+
+* `host_header` - (Required) A [hostname condition](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html#host-conditions)
+that defines a rule to forward requests to the service's target group.
+
+* `name` - (Required) The name of the load balancer.
+
+* `path_pattern` - (Optional) A [path condition](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html#path-conditions)
+that defines a rule to forward requests based on the URL path.
+Defaults to `*`.
+
+* `port` - (Optional) The port of the listener. Defaults to 443.
+
+* `priority` - (Optional) The priority for the rule between 1 and 50000. Leaving it unset will automatically set the rule with next available priority after currently existing highest rule. A listener can't have multiple rules with the same priority.
+
+* `security_group_id` - (Optional) The security group ARN associated with the lLoad lalancer. If not specified it is looked up by the load balancer's name.
+
+> **NOTE:** No more than one load balancer may be attached to an ECS service. See the AWS [Service load balancing](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-load-balancing.html#load-balancing-concepts) documentation.
+
+`network_configuration`
+-----------------------
+
+A `network_configuration` block supports the following:
+
+* `assign_public_ip` - (Optional) Boolean value specifies whether a public IP address to the Elastic Network Interface (FARGATE launch type only) is created. Default is `false`.
+
+* `ports` - (Optional) A list of numeric ports to open on the container to outside traffic. (**NOTE:** This is insecure, and is intended to be used *only* for testing FARGATE.)
+
+* `security_group_ids` - (Optional) A list of security group IDs to associate with
+the task or service. If used with `security_group_names`, the security groups consist of the union of the security groups derived from both lists. **If you do not specify a security group, the VPC's default security group is used.**
+
+* `security_group_names` - (Optional) A list of security group names to associate with the task or service. If used with `security_group_ids`, the security groups consist of the union of the security groups derived from both lists. **If you do not specify a security group, the VPC's default security group is used.**
+
+* `subnet_ids` - (Optional) A list of subnet IDs in which the tasks or service will be placed. **NOTE:** Though optional, either `subnet_ids` or `subnet_type` are required, and both may be specified.
+
+* `subnet_type` - (Optional) Specifies the type of subnet(s) in which the tasks or service will be placed. Valid values are 'campus', 'private', or 'public'. **NOTE:** Though optional, either `subnet_ids` or `subnet_type` are required, and both may be specified. If `subnet_type` is populated, a value for `vpc` must be specified.
+
+* `vpc` - (Optional) The name of the virtual private cloud to be associated with the task or service. **NOTE:** Required when using `subnet_type`.
+
+For more information, see the AWS [Task Networking](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-networking.html) documentation.
+
+> NOTE: `network_configuration` is only supported when `network_mode` is `awsvpc`.
+
+> NOTE: The `subnet_id` and `subnet_type` attributes can be used together. In this case the subnets to be associated with the service consist of the union of the subnets IDs defined explicitly in `subnet` and the subnet IDs derived from `subnet_type` and `vpc`.
 
 `ordered_placement_strategy`
 ---------------------------
 
 `ordered_placement_strategy` blocks support the following:
-
-* `type` - (Required) The type of placement strategy. Must be one
-of: `binpack`, `random`, or `spread`
 
 * `field` - (Optional) For the `spread` placement strategy, valid values
 are `instanceId` (or `host`, which has the same effect), or any platform
@@ -449,105 +404,83 @@ the `binpack` type, valid values are `memory` and `cpu`. For the `random`
 type, this attribute is not needed. For more information, see
 [Placement Strategy](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_PlacementStrategy.html).
 
-> Note: `ordered_placement_strategy` is not supported when `launch_type` is FARGATE.
+* `type` - (Required) The type of placement strategy. Must be one
+of: `binpack`, `random`, or `spread`.
 
-> Note: for `spread`, `host` and `instanceId` will be normalized, by AWS, to be `instanceId`. This means the statefile will show `instanceId` but your config will differ if you use `host`.
+> NOTE: `ordered_placement_strategy` is not supported when `launch_type` is FARGATE.
+
+> NOTE: for `spread`, the `host` and `instanceId` will be normalized, by AWS, to be `instanceId`. This means the state file will show `instanceId` but your Terraform will observe differences if you use `host`.
 
 `placement_constraints`
 -----------------------
 
 `placement_constraints` blocks support the following:
 
-* `type` - (Required) The type of constraint. The only valid values at
-this time are `memberOf` and `distinctInstance`.
-
 * `expression` - (Optional) Cluster Query Language expression to apply
 to the constraint. Does not need to be specified for the `distinctInstance`
 type. For more information, see [Cluster Query Language in the Amazon
-EC2 Container Service Developer Guide.](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cluster-query-language.html)
+EC2 Container Service Developer Guide.](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cluster-query-language.html).
 
-> Note: `placement_constraints` is not supported when `launch_type` is FARGATE.
+* `type` - (Required) The type of constraint. The only valid values at
+this time are `memberOf` and `distinctInstance`.
 
-`network_configuration`
------------------------
-
-A `network_configuration` block supports the following:
-
-* `subnet_type` - (Required) Subnet type (e.g., 'campus', 'private', 'public') for resource placement.
-
-* `vpc` - (Optional) The name of the virtual private cloud to be associated with the task or
-service. **NOTE:** Required when using `subnet_type`.
-
-* `subnets` - (Required) The subnet IDs to associated with the task or service. **NOTE:** Optional when using `subnet_type`.
-
-* `security_groups` - (Optional) The security groups associated with
-the task or service. If you do not specify a security group, the
-default security group for the VPC is used.
-
-* `security_group_names` - (Optional) Additonal security groups to
-associated with the task or service. This is a space delimited
-string list of security group names. This may be specified with or
-without `security_groups` in which case both lists are merged. If
-you do not specify a security group, the default security group for
-the VPC is used.
-
-* `assign_public_ip` - (Optional) Assign a public IP address to the
-ENI (Fargate launch type only). Valid values are `true` or `false`.
-Default `false`.
-
-* `ports` - (Optional) Ports to open on the container to outside
-traffic. (For FARGATE testing use only.)
-
-For more information, see [Task Networking](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-networking.html).
-
-> Note: `network_configuration` is only supported when `network_mode`
-> is `aws_vpc`.
->
-> Note: The `subnet_type` and `subnet` attributes can be used together. In this case the subnets
-> to be associated with the service consist of the union of the subnets defined explicitly
-> in `subnet` and derived from `subnet_type` and `vpc`.
+> NOTE: `placement_constraints` is not supported when `launch_type` is FARGATE.
 
 `service_discovery`
 -----------------
 
-A `service_discovery` block configures [Amazon Service Discovery](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-discovery.html) and supports the following:
+A `service_discovery` block configures [Amazon Service Discovery](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-discovery.html) and supports the following arguments:
+
+* `dns_routing_policy` – (Optional) The routing policy that you want to apply to all records that Route 53 creates when you register an instance and specify the service. Valid values are MULTIVALUE, and WEIGHTED.
+
+* `dns_ttl` – (Optional) The amount of time, in seconds, that you want DNS resolvers to cache the settings for this resource record set. Default is 60 seconds.
+
+* `dns_type` – (Optional) The type of the resource, which indicates the value that Amazon Route 53 returns in response to DNS queries. Valid values are: A, AAAA, CNAME, and SRV. Default is "A".
+
+* `health_check_config` – (Optional) A [service discovery health check config](#service_discoveryhealth_check_config) block that contains settings for an
+optional health check. Only supported with public DNS namespaces.
 
 * `name` – (Optional) The hostname of the service. Defaults to the service name specified
  by the `name` argument.
 
 * `namespace_id` – (Required) The ID of the namespace to use for DNS configuration.
+* `service_discovery_health_check_custom_config` – (Optional) A [service discovery
+custom health check config](#service_discoveryhealth_check_custom_config) block that
+contains settings for ECS-managed health checks.
 
-* `dns_routing_policy` – (Optional) The routing policy that you want to apply to all records that Route 53 creates when you register an instance and specify the service. Valid Values: MULTIVALUE, WEIGHTED.
-
-* `dns_ttl` – (Optional) The amount of time, in seconds, that you want DNS resolvers to cache the settings for this resource record set. Default is 60 seconds.
-
-* `dns_type` – (Optional) The type of the resource, which indicates the value that Amazon Route 53 returns in response to DNS queries. Valid Values: A, AAAA, SRV, CNAME. Default is "A".
-
-`service_discovery_health_check_config`
+`service_discovery.health_check_config`
 ---------------------------------------
 
-The following arguments are supported:
+The following arguments are supported by this sub-object:
 
-* `failure_threshold` – (Optional) The number of consecutive health
-checks. Maximum value of 10.
+* `failure_threshold` – (Optional) The number of consecutive failed health checks to constitute unhealthiness.
 
-* `resource_path` – (Optional) The path that you want Route 53 to
-request when performing health checks. Route 53 automatically adds
-the DNS name for the service. If you don't specify a value, the
-default value is /.
+* `resource_path` – (Optional) A path that Route 53 will request when performing health checks. Route 53 automatically adds the DNS name for the service. If you don't specify a value, the default value is `/`.
 
-* `type` – (Optional) The type of health check that you want to
-create, which indicates how Route 53 determines whether an endpoint
-is healthy. Valid Values: HTTP, HTTPS, TCP
+* `type` – (Optional) The type of health check that you want to create, which indicates how Route 53 determines whether an endpoint is healthy. Valid values are HTTP, HTTPS, and TCP.
 
-`service_discovery_health_check_custom_config`
+`service_discovery.health_check_custom_config`
 ----------------------------------------------
 
-The following arguments are supported:
+The following argument is supported by this sub-object:
 
-* `failure_threshold` – (Optional) The number of 30-second intervals that you want
-service discovery to wait before it changes the health status of a service instance.
-Maximum value of 10.
+* `failure_threshold` – (Optional) The number health check intervals that service discovery should wait before it marks a service instance as unhealthy.
+
+`stickiness`
+-----------------
+
+A `stickiness` block supports the following arguments:
+
+* `cookie_duration` - (Optional) The time period, in seconds, during
+which requests from a client should be routed to the same target.
+After this time period expires, the load balancer-generated cookie
+is considered stale.
+
+* `enabled` - (Optional) Boolean value determining whether sessions are sticky.
+Default is `false`.
+
+* `type` - (Required) The type of sticky sessions. The only current
+possible value is `lb_cookie`.
 
 `task_definition`
 -----------------
@@ -555,46 +488,106 @@ Maximum value of 10.
 If a `task_definition_arn` is not given, a container definition will be created for the service. The name of the automatically created container definition is the same as the ECS service name.
 The created container definition may optionally be further modified by specifying a `task_definition` block with one of more of the following options:
 
-* `container_definition_file` - (Optional) A file containing a list of valid [container
-definitions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions)
-provided as a single JSON document. See
-[Example Task Definitions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/example_task_definitions.html)
-for example container definitions, note that _only_ the content of the `containerDefinitions` key
+* `container_definition_file` - (Optional) An ECS service that does *not* use an existing task definition requires specifying
+characteristics for the set of containers that will comprise the service.
+This configuration is defined in the file specified in the `container_definition_file` argument, and consists of a list of valid [container
+definitions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions) provided as a valid JSON document.
+See
+[Example Task Definitions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/example_task_definitions.html) for example container definitions.
+
+    Note that _only_ the content of the `containerDefinitions` key
 in these example task definitions belongs in the specified `container_definition_file`.
-The default filename is `containers.json`.
+The default filename is either `containers.json.tftmpl` or `containers.json`. More details can be found at the end of this section.
+
+* `cpu` - (Optional) The number of
+[cpu units](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_size) used by the task.
+Supported for FARGATE only.
+
+* `memory` - (Optional) The amount (in MiB) of
+[memory](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_size) used by the task.
+Supported for FARGATE only.
+
+* `network_mode` - (Optional) The Docker networking mode to use for
+containers in the task. The valid values are `none`, `bridge`,
+`awsvpc`, and `host`.
 
 * `task_role_arn` - (Optional) The ARN of an IAM role that allows
 your Amazon ECS container task to make calls to other AWS services.
 
-* `network_mode` - (Optional) The Docker networking mode to use for
-the containers in the task. The valid values are `none`, `bridge`,
-`awsvpc`, and `host`.
+* `template_variables` - (Optional) A block of template variables to be expanded while processing the `container_definition_file`. Used to configure [template variables](#task_definitiontemplate_variables) passed to the task definition.
 
-* `cpu` - (Optional) The number of
-[cpu units](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_size)
-used by the task.  Supported for FARGATE only, defaults to 256 (0.25 vCPU).
+`task_definition.template_variables`
+------------------------------------
 
-* `memory` - (Optional) The amount (in MiB) of
-[memory](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_size)
-used by the task. Supported for FARGATE only, defaults to 512.
+This block itself is optional. However, if the block is defined by the caller, *all* of the following arguments must be specified. The arguments supported by this sub-object are as follows:
+
+* `docker_tag` - (Required) The Docker tag for the image that is to be pulled from the ECR repository at the time the service's ECS tasks are launched.
+
+* `region` - (Required) The AWS region which hosts the ECR repository from which images are to be pulled.
+
+* `registry_id` - (Required) The registry ID is the AWS account number which owns the repository to be pulled at the time the service's ECS task is launched.
+
+### Notes on the `container_definition_file` argument
+
+If the `task_definition` block is defined, and its `template_variables` block is populated, this module runs the Terraform [`templatefile()`](https://developer.hashicorp.com/terraform/language/functions/templatefile) function on the file named in the `container_definition_file` argument. By default, the file name is `containers.json.tftmpl`, but it can be overriden by the user.
+The output from the template's rendering is passed to the task definition.
+
+The use of template variables helps make the Terraform configuration DRY by eliminating the need for manual editing – such as during the promotion of services from test to production accounts. 
+The example below shows how template variables `docker_tag`, `region`, and `registry_id` are passed to the task definition when template rendering is requested by the caller using the `template_variables` block and an appropriately-configured `containers.json.tftmpl` file.
+
+### A `containers.json.tftmpl` file supports template rendering
+
+This example uses all of the supported template variables. The construct `${variable_name}` to expand a supported template variable.
+
+```json
+[
+  {
+    "name": "daemon",
+    "image": "${registry_id}.dkr.ecr.${region}.amazonaws.com/foobar:${docker_tag}",
+    "logConfiguration": {
+       "logDriver": "awslogs",
+       "options": {
+         "awslogs-stream-prefix": "foobar",
+         "awslogs-group": "/service/foobar",
+         "awslogs-region": "${region}"
+      }
+    }
+  }
+]
+```
+
+If a container definition is needed without the templating capability of this module, omit  the `template_variables` block of the `task_definition` block. The default file name is `containers.json`, which can be overriden by the user. In this case, the container definition is passed in to the task definition verbatim, as in the following example.
+
+### A `containers.json` file does not support template rendering
+
+```json
+[
+  {
+    "name": "apache",
+    "image": "httpd",
+    "portMappings": [
+      {
+        "containerPort": 80
+      }
+    ]
+  }
+]
+
+```
 
 `volume`
 --------
 
-A `volume` block supports the following:
+A `volume` block supports the following arguments:
 
-* `name` - (Required) The name of the volume. This name is referenced
-in the `sourceVolume` parameter of container definition in the
-`mountPoints` section.
+* `docker_volume_configuration` - (Optional) Used to configure a [Docker volume](#volumedocker_volume_configuration). **NOTE:** Due to limitations in Terraform object typing, either a valid `docker_volume_configuration` object or a `null` must be specified whenever a `volume` block is defined.
 
-* `host_path` - (Optional) The path on the host container instance
-that is presented to the container. If not set, ECS will create a
-non persistent data volume that starts empty and is deleted after
-the task has finished.
+* `efs_volume_configuration` - (Optional) Used to configure an [EFS volume](#volumeefs_volume_configuration). **NOTE:** Due to limitations in Terraform object typing, either a valid `efs_volume_configuration` object or `null` must be specified whenever a `volume` block is defined.
 
-* `docker_volume_configuration` - (Optional, but see note) Used to configure a [Docker volume](#docker_volume_configuration). **NOTE:** Due to limitations in Terraform object typing, either a valid `docker_volume_configuration` map or the value `null` must be specified.
+* `host_path` - (Optional) The path on the host container instance presented to the container.
+If not set, ECS will create a non-persistent data volume that starts empty, and which is deleted after the task exits.
 
-* `efs_volume_configuration` - (Optional, but see note) Used to configure an [EFS volume](#efs_volume_configuration). **NOTE:** Due to limitations in Terraform object typing, either a valid `efs_volume_configuration` map or the value `null` must be specified.
+* `name` - (Required) The volume name. This value is referenced in the `sourceVolume` parameter of the container definition inside the `mountPoints` configuration.
 
 ```
 volume = [
@@ -613,8 +606,6 @@ volume = [
 
 A `docker_volume_configuration` block appears within a [`volume`](#volume) block, and supports the following:
 
-* `scope` - (Optional) The scope for the Docker volume, which determines its lifecycle, either task or shared. Docker volumes that are scoped to a task are automatically provisioned when the task starts and destroyed when the task stops. Docker volumes that are scoped as shared persist after the task stops.
-
 * `autoprovision` - (Optional) If this value is true, the Docker volume is created if it does not already exist. Note: This field is only used if the scope is shared.
 
 * `driver` - (Optional) The Docker volume driver to use. The driver value must match the driver name provided by Docker because it is used for task placement.
@@ -623,6 +614,9 @@ A `docker_volume_configuration` block appears within a [`volume`](#volume) block
 
 * `labels - (Optional) A map of custom metadata to add to your Docker volume.
 
+* `scope` - (Optional) The scope for the Docker volume, which determines its lifecycle, which is either `task` or `shared`. Docker volumes that have `task` scope are automatically provisioned when the task starts, and are destroyed when the task stops.
+Docker volumes that are scoped as `shared` persist after the task stops.
+
 For more information, see [Specifying a Docker volume in your Task Definition Developer Guide](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/docker-volumes.html#specify-volume-config)
 
 `efs_volume_configuration`
@@ -630,10 +624,9 @@ For more information, see [Specifying a Docker volume in your Task Definition De
 
 An `efs_volume_configuration` block appears within a [`volume`](#volume) block, and supports the following:
 
-* `file_system_id` - (Required) The ID of the EFS File System.
+* `file_system_id` - (Required) The ID of the EFS file system.
 
 * `root_directory` - (Optional) The path to mount on the host.
-
 
 ```
 volume = [
@@ -658,22 +651,28 @@ Attributes Reference
 
 The following attributes are exported:
 
-* `id` - The Amazon Resource Name (ARN) that identifies the service
+* `autoscaling_alarm` - This output is a map of maps. The outer keys are `down` and `up`, which correspond to scale-down and scale-up activity. The value stored under each such key is another map. The key for each entry in this inner map is the name of the CloudWatch metric associated with the alarm, with the ARN of the alarm as the corresponding value.
+
+* `autoscaling_policy` - This output is a map of maps. The outer keys are `down` and `up`, which correspond to scale-down and scale-up activity. The value stored under each such key is another map. The key for each entry in this inner map is the name of the CloudWatch metric associated with the policy, with the ARN of the policy as the corresponding value.
 
 * `fqdn` – The fully qualified domain name of the Route 53 record for
-the service. Only created when an `alias` block is provided.
+the service. Only created when an `alias` block is specified.
 
-* `target_group_arn` - The ARN of the Target Group created when a
-`load_balancer` block is given
+* `id` - The Amazon Resource Name (ARN) that identifies the ECS service.
 
-* `task_definition_arn` - Full ARN of the Task Definition created
-for the service when a `task_definition_arn` is not given
+* `security_group_id` - The ID of the security group created for the service (`awsvpc` mode only).
 
-* `security_group_id` - The ID of the security group created for
-the service (`awsvpc` mode only)
+* `service_discovery_registry_arn` - The ARN of the service discovery registry associated with the service, if any.
 
 * `subnet_ids` – A list of subnet IDs associated with the service.
 
+* `target_group_arn` - The ARN of the target group created when a
+`load_balancer` block is specified.
+
+* `task_definition_arn` - Full ARN of the task definition created
+for the service when a `task_definition_arn` is not given.
+
+For additional outputs produced when the `_debug` argument is set, please see the source code.
 
 Credits
 --------------------

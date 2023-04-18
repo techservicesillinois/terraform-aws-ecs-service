@@ -37,8 +37,8 @@ resource "aws_lb_target_group" "default" {
   dynamic "stickiness" {
     for_each = [var.stickiness]
     content {
-      cookie_duration = lookup(stickiness.value, "cookie_duration", null)
-      enabled         = lookup(stickiness.value, "enabled", null)
+      cookie_duration = stickiness.value.cookie_duration
+      enabled         = stickiness.value.enabled
       type            = stickiness.value.type
     }
   }

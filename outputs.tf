@@ -17,20 +17,12 @@ output "autoscaling_policy" {
   value = var.autoscale != null ? { for k, v in local.autoscaling_policy : k => { for mk, mv in v : mk => mv.arn } } : null
 }
 
-output "id" {
-  value = aws_ecs_service.default.id
-}
-
 output "fqdn" {
   value = var.alias != null ? aws_route53_record.default[0].fqdn : null
 }
 
-output "target_group_arn" {
-  value = var.load_balancer != null ? aws_lb_target_group.default[0].arn : null
-}
-
-output "task_definition_arn" {
-  value = local.task_definition_arn
+output "id" {
+  value = aws_ecs_service.default.id
 }
 
 output "security_group_id" {
@@ -43,6 +35,14 @@ output "service_discovery_registry_arn" {
 
 output "subnet_ids" {
   value = local.all_subnets
+}
+
+output "target_group_arn" {
+  value = var.load_balancer != null ? aws_lb_target_group.default[0].arn : null
+}
+
+output "task_definition_arn" {
+  value = local.task_definition_arn
 }
 
 # Debug outputs.
