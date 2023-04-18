@@ -174,7 +174,7 @@ variable "network_configuration" {
 }
 
 variable "ordered_placement_strategy" {
-  description = "Strategy rules taken into consideration during task placement, in descending order of precedence. Not compatible with Fargate."
+  description = "Strategy rules taken into consideration during task placement, in descending order of precedence. Not compatible with the FARGATE launch type."
   type = list(object({
     type  = string
     field = optional(string)
@@ -183,7 +183,7 @@ variable "ordered_placement_strategy" {
 }
 
 variable "placement_constraints" {
-  description = "Rules taken into consideration during task placement. Not compatible with Fargate."
+  description = "Rules taken into consideration during task placement. Not compatible with the FARGATE launch type."
   type = list(object({
     type       = string
     expression = optional(string)
@@ -192,7 +192,7 @@ variable "placement_constraints" {
 }
 
 variable "platform_version" {
-  description = "Platform version (only applies to Fargate)."
+  description = "Platform version for FARGATE launch type. Not compatible with other launch types."
   type        = string
   default     = null
 }
@@ -206,7 +206,8 @@ variable "service_discovery" {
       type              = optional(string)
     }))
     health_check_custom_config = optional(object({
-      failure_threshold = optional(number) # Forces new resource per Terraform docs.
+      # NOTE: The failure_threshold forces a new resource per Terraform documentation.
+      failure_threshold = optional(number)
     }))
     name           = optional(string)
     namespace_id   = string
@@ -215,6 +216,20 @@ variable "service_discovery" {
     type           = optional(string, "A")
   })
   default = null
+}
+
+# FIXME: Confirm whether the below is still true, and consider converting to object.
+# The `stickiness` argument MUST have a default; Terraform will fail if not defined.
+variable "stickiness" {
+
+  description = "If specified, the [`stickiness`](#stickiness) block causes the load balancer to bind client requests to the same target. Valid only with application load balancers. Not valid without an application load balancer."
+
+  type = map(any)
+  default = {
+    cookie_duration = null
+    enabled         = false
+    type            = "lb_cookie"
+  }
 }
 
 variable "tags" {
@@ -241,34 +256,21 @@ variable "task_definition" {
 }
 
 variable "task_definition_arn" {
-  description = " The family and revision (family:revision) or full ARN of the task definition for the ECS service"
+  description = "The family and revision (family:revision) or full ARN of a task definition for the ECS service"
   default     = null
 }
 
-# FIXME: See if below statement is still true, and convert to object.
-# stickiness MUST have a default otherwise Terraform will fail when
-# the map is not defined!
-variable "stickiness" {
-  description = "A stickiness block. Valid only with application load balancers"
-
-  type = map(any)
-  default = {
-    type    = "lb_cookie"
-    enabled = false
-  }
-}
-
 variable "volume" {
-  description = "A list of volume blocks that containers may use"
+  description = "List of objects defining which Docker or EFS volumes are available to containers"
   type = list(object({
     name      = string
     host_path = string
     docker_volume_configuration = object({
-      scope         = string
       autoprovision = bool
       driver        = string
       driver_opts   = map(string)
       labels        = map(string)
+      scope         = string
     })
     efs_volume_configuration = object({
       file_system_id = string
