@@ -249,7 +249,7 @@ variable "task_definition" {
     template_variables = optional(object({
       docker_tag  = string
       region      = string
-      registry_id = number
+      registry_id = string
     }))
   })
   default = null
