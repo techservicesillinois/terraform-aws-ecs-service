@@ -111,16 +111,17 @@ variable "launch_type" {
 variable "load_balancer" {
   description = "Load balancer block"
   type = object({
-    certificate_domain   = optional(string)
-    container_name       = optional(string)
-    container_port       = optional(number)
-    deregistration_delay = optional(number)
-    host_header          = optional(string)
-    name                 = optional(string)
-    path_pattern         = optional(string, "*")
-    port                 = optional(number, 443)
-    priority             = optional(number)
-    security_group_id    = optional(string)
+    certificate_domain          = optional(string)
+    container_name              = optional(string)
+    container_port              = optional(number)
+    deregistration_delay        = optional(number)
+    host_header                 = optional(string)
+    manage_listener_certificate = optional(bool, true)
+    name                        = optional(string)
+    path_pattern                = optional(string, "*")
+    port                        = optional(number, 443)
+    priority                    = optional(number)
+    security_group_id           = optional(string)
   })
   default = null
 
