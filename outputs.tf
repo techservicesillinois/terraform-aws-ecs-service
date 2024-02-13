@@ -78,3 +78,23 @@ output "_service_discovery" {
 output "_task_definition" {
   value = (var._debug) ? var.task_definition : null
 }
+
+#output "_aws_acm_certificate_arn" {
+# value = try(data.aws_acm_certificate.default[0].arn, null)
+#}
+#
+#output "_aws_acm_certificate_domain" {
+# value = try(data.aws_acm_certificate.default[0].domain, null)
+#}
+#
+#output "_aws_lb_listener_port" {
+# value = try(data.aws_lb_listener.selected[0].port, null)
+#}
+#
+#output "_aws_lb_listener_protocol" {
+# value = try(data.aws_lb_listener.selected[0].protocol, null)
+#}
+#
+#output "_manage_listener_certificate" {
+# value = try(local.manage_listener_certificate, "null")
+#}

@@ -2,7 +2,7 @@
 
 [![Terraform actions status](https://github.com/techservicesillinois/terraform-aws-ecs-service/workflows/terraform/badge.svg)](https://github.com/techservicesillinois/terraform-aws-ecs-service/actions)
 
-Provides a service running under Amazon Elastic Container Service (ECS). An ECS service is essentially a task such as a web service that is expected to run until the task exits. ECS is normally configured to automatically restart a failed task.
+Provides a service running under the Amazon Elastic Container Service (ECS). An ECS service is essentially a task such as a web service that is expected to run until terminated. ECS is normally configured to automatically restart a failed task.
 
 ECS allows users to run Docker applications across a cluster of EC2 instances which provide compute power for the workload. Although running Docker containers is itself a straightforward process, configuration of the various infrastructure components (including integrating the containers with an optional application load balancer) is complex.
 
@@ -10,7 +10,7 @@ This module's primary intent is to simplify setting up load-balanced services us
 [application load balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html).
 The module also supports running tasks in non-load-balanced containers in addition to supporting public and private application load balancers (ALBs).
 
-ECS supports two launch types. The ECS launch type runs containerized services on a customer-managed ECS cluster. Fargate launch type uses an Amazon-managed cluster that allows customers to run containers without having to manage a cluster of their own.
+ECS supports two launch types. The ECS launch type runs containerized services on a customer-managed ECS cluster. The Fargate launch type uses an Amazon-managed cluster that allows customers to run containers without having to manage a cluster of their own.
 
 If using a load balancer, the module will create a
 [listener rule](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-update-rules.html), a [target group](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-target-groups.html),
@@ -172,7 +172,7 @@ Health check blocks are documented below.
 * `load_balancer` - (Optional) A [load balancer block](#load_balancer).
 Load balancer blocks are documented below.
 
-* `name` - (Required) ECS service name. Up to 255 letters (uppercase and lowercase), numbers, hyphens, and underscores are allowed. 
+* `name` - (Required) ECS service name. Up to 255 letters (uppercase and lowercase), numbers, hyphens, and underscores are allowed.
 
 * `network_configuration` - (Optional) A [network configuration](#network_configuration) block is required for task definitions using the `awsvpc` network mode, in order that those tasks receive an [Elastic Network Interface](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html). The `network_configuration` block is **not**
 supported for other network modes.
@@ -261,7 +261,7 @@ The top-level `autoscale` object consists of three input arguments used to confi
 
 * `metrics` - (Required) A map of [autoscaling metrics](#autoscalemetrics). Each entry in this map consists of a key specifying an autoscaling metric. See [Amazon ECS CloudWatch metrics](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cloudwatch-metrics.html#service_utilization). The value stored under each key in the `metrics` sub-object is itself another sub-object that defines how the specified metric is evaluated by ECS.
 
-> **NOTE:** At this time, this module is limited to the two CloudWatch metrics `CPUUtilization` and `MemoryUtilization` defined in the `AWS/ECS` namespace. As a result, the dimensions `ClusterName` and `ServiceName` associated with that namespace are "hardwired" into this module. This restriction will be eliminated in a future version of this module, although that will require an even deeper data structure.
+> **NOTE:** At this time, this module is limited to autoscaling on only the two CloudWatch metrics `CPUUtilization` and `MemoryUtilization` defined in the `AWS/ECS` namespace. As a result, the dimensions `ClusterName` and `ServiceName` associated with that namespace are "hardwired" into this module. This restriction will be eliminated in a future version of this module, although that will require an even deeper data structure.
 
 `autoscale.metrics`
 -------------------
@@ -270,7 +270,7 @@ Each autoscaling `metrics` sub-object allows specifying the following arguments:
 
 * `actions_enabled` - (Optional) Indicates whether or not actions should be executed during any changes to the alarm's state. Defaults to `true`.
 
-* `adjustment_type` - (Required) Whether the adjustment is an absolute number or a percentage of the current capacity. 
+* `adjustment_type` - (Required) Whether the adjustment is an absolute number or a percentage of the current capacity.
 
 * `cooldown` - (Required) Amount of time, in seconds, after a scaling activity completes and before the next scaling activity can start.
 
@@ -351,6 +351,30 @@ A `load_balancer` block may contain the following inputs:
 
 * `host_header` - (Required) A [hostname condition](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html#host-conditions)
 that defines a rule to forward requests to the service's target group.
+
+* `manage_listener_certificate` - (Optional) This Boolean argument specifies whether a listener certificate should be managed with the ECS task. This is `true` by default. Normally, listener certificates can have the same lifecycle as the ECS task and the listener used by the load balancer to route traffic to the appropriate ECS task.
+
+    However, cases exist where more then one ECS task listens on the same `host_header`. These tasks use `path_pattern` and `priority` to distinguish which task handles a particular request. In this case, it is advisable to create a `listener_certificate` in a separate directory, allowing that listener certificate to persist longer than any of the individual ECS tasks. The `manage_listener_certificate` is set to `false` in this case, so that the destruction of one ECS task for maintenance doesn't delete the listener certificate that other tasks depend upon.
+
+    In these cases, use the [terraform-aws-lb-listener-certificate](https://github.com/techservicesillinois/terraform-aws-lb-listener-certificate) module in a separate directory to maintain that listener certificate independently of the tasks that use that listener certificate.
+
+    For example:
+
+    ```
+    ./
+    ├── acm/
+    │   └── terragrunt.hcl
+    ├── apps/
+    │   ├── common.tfvars
+    │   ├── bar/
+    │   │   ├── containers.json.tftpl
+    │   │   └── terragrunt.hcl
+    │   └── foo/
+    │       ├── containers.json.tftpl
+    │       └── terragrunt.hcl
+    └── listener-cert/
+        └── terragrunt.hcl
+```
 
 * `name` - (Required) The name of the load balancer.
 
@@ -532,7 +556,7 @@ This block itself is optional. However, if the block is defined by the caller, *
 If the `task_definition` block is defined, and its `template_variables` block is populated, this module runs the Terraform [`templatefile()`](https://developer.hashicorp.com/terraform/language/functions/templatefile) function on the file named in the `container_definition_file` argument. By default, the file name is `containers.json.tftmpl`, but it can be overriden by the user.
 The output from the template's rendering is passed to the task definition.
 
-The use of template variables helps make the Terraform configuration DRY by eliminating the need for manual editing – such as during the promotion of services from test to production accounts. 
+The use of template variables helps make the Terraform configuration DRY by eliminating the need for manual editing – such as during the promotion of services from test to production accounts.
 The example below shows how template variables `docker_tag`, `region`, and `registry_id` are passed to the task definition when template rendering is requested by the caller using the `template_variables` block and an appropriately-configured `containers.json.tftmpl` file.
 
 ### A `containers.json.tftmpl` file supports template rendering
