@@ -27,6 +27,10 @@ resource "aws_security_group" "default" {
   vpc_id      = data.aws_subnet.selected[0].vpc_id
 
   tags = merge({ Name = var.name }, var.tags)
+
+  lifecycle {
+    ignore_changes = [description]
+  }
 }
 
 # Allow the containers to receive traffic from the LB

@@ -46,6 +46,52 @@ locals {
   )
 }
 
+# Smooth transition for infrastructure created by old module versions.
+
+# NOTE: We can't do multiple moved blocks to a single resource, even
+# though they are mutually-exclusive. However, enumerating all but the
+# most common use case (commented out) serves as documentation.
+
+#moved {
+# from = aws_ecs_service.all[0]
+# to   = aws_ecs_service.default
+#}
+
+#moved {
+# from = aws_ecs_service.awsvpc[0]
+# to   = aws_ecs_service.default
+#}
+
+#moved {
+# from = aws_ecs_service.awsvpc_all[0]
+# to   = aws_ecs_service.default
+#}
+
+moved {
+  from = aws_ecs_service.awsvpc_lb[0]
+  to   = aws_ecs_service.default
+}
+
+#moved {
+# from = aws_ecs_service.awsvpc_sd[0]
+# to   = aws_ecs_service.default
+#}
+
+#moved {
+# from = aws_ecs_service.default[0]
+# to   = aws_ecs_service.default
+#}
+
+#moved {
+# from = aws_ecs_service.lb[0]
+# to   = aws_ecs_service.default
+#}
+
+#moved {
+# from = aws_ecs_service.sd[0]
+# to   = aws_ecs_service.default
+#}
+
 resource "aws_ecs_service" "default" {
   name                               = var.name
   launch_type                        = var.launch_type

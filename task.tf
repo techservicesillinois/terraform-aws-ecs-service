@@ -25,6 +25,18 @@ locals {
   task_definition_arn = var.task_definition_arn != null ? var.task_definition_arn : aws_ecs_task_definition.default[var.launch_type].arn
 }
 
+# Smooth transition for infrastructure created by old module versions.
+
+moved {
+  from = aws_ecs_task_definition.ec2[0]
+  to   = aws_ecs_task_definition.default["EC2"]
+}
+
+moved {
+  from = aws_ecs_task_definition.fargate[0]
+  to   = aws_ecs_task_definition.default["FARGATE"]
+}
+
 resource "aws_ecs_task_definition" "default" {
   for_each = toset(var.task_definition_arn == null ? [var.launch_type] : [])
 
