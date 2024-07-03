@@ -25,6 +25,8 @@ resource "aws_alb_listener_rule" "default" {
       values = [var.load_balancer.host_header]
     }
   }
+
+  tags = local.tags
 }
 
 resource "aws_alb_listener_rule" "set_priority" {
@@ -49,4 +51,6 @@ resource "aws_alb_listener_rule" "set_priority" {
       values = [var.load_balancer.host_header]
     }
   }
+
+  tags = local.tags
 }

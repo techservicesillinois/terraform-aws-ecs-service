@@ -13,7 +13,7 @@ resource "aws_lb_target_group" "default" {
   port                 = var.load_balancer.container_port
   protocol             = "HTTP" # The path between the LB and containers is trusted.
   target_type          = var.task_definition.network_mode == "awsvpc" ? "ip" : "instance"
-  tags                 = merge({ Name = var.name }, var.tags)
+  tags                 = local.tags
   vpc_id               = one(data.aws_lb.selected.*.vpc_id)
 
   # TODO: It wouild be really nice if Terraform would "short-circuit" and
