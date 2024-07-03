@@ -92,6 +92,10 @@ moved {
 # to   = aws_ecs_service.default
 #}
 
+locals {
+  tags = merge({ Name = var.name }, var.tags)
+}
+
 resource "aws_ecs_service" "default" {
   name                               = var.name
   launch_type                        = var.launch_type
@@ -100,9 +104,12 @@ resource "aws_ecs_service" "default" {
   desired_count                      = var.desired_count
   deployment_maximum_percent         = var.deployment_maximum_percent
   deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
-  health_check_grace_period_seconds  = var.health_check_grace_period_seconds
-  platform_version                   = var.platform_version
-  tags                               = merge({ Name = var.name }, var.tags)
+  # enable_ecs_managed_tags            = true
+  force_new_deployment              = var.force_new_deployment
+  health_check_grace_period_seconds = var.health_check_grace_period_seconds
+  platform_version                  = var.platform_version
+  propagate_tags                    = var.propagate_tags
+  tags                              = local.tags
 
   dynamic "load_balancer" {
     for_each = toset(var.load_balancer != null ? [var.load_balancer] : [])

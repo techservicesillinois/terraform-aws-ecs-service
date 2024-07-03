@@ -81,5 +81,5 @@ resource "aws_ecs_task_definition" "default" {
   memory                   = var.task_definition.memory
   requires_compatibilities = var.launch_type == "FARGATE" ? ["FARGATE"] : ["EC2"]
 
-  tags = merge({ Name = var.name }, var.tags)
+  tags = local.tags
 }

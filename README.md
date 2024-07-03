@@ -162,6 +162,8 @@ that points to the load balancer. Requires that a `load_balancer` block is defin
 * `desired_count` - (Optional) The number of instances of the task
 definition to place and keep running. Defaults to 1.
 
+* `force_new_deployment` - (Optional) Enable forcing a new task deployment of the service. This can be used to update tasks to use a newer Docker image with same image/tag combination (e.g., `myimage:latest`), roll Fargate tasks onto a newer platform version, or immediately deploy `ordered_placement_strategy` and `placement_constraints` updates.
+
 * `health_check` -  (Optional) A [health check block](#health_check).
 Health check blocks are documented below.
 
@@ -182,6 +184,8 @@ supported for other network modes.
 * `placement_constraints` - (Optional) Rules taken into consideration during task placement. Not compatible with the FARGATE launch type. The [`placement_constraints`](#placement_constraints) block is defined below.
 
 * `platform_version` - (Optional) Platform version for FARGATE launch type. Not compatible with other launch types.
+
+* `propagate_tags` - (Optional) Whether to propagate the tags from the task definition or the service to the tasks. May contain values `NONE`, `SERVICE`, `TASK_DEFINITION`. The default is `TASK_DEFINITION`.
 
 * `service_discovery` - (Optional) A [service discovery](#service_discovery) block.
 This parameter is used to configure

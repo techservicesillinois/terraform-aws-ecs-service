@@ -5,6 +5,20 @@ locals {
   lb_sg_id = try(var.load_balancer.security_group_id != null, false) ? var.load_balancer.security_group_id : one(data.aws_security_group.lb.*.id)
 }
 
+# Default security group for the ECS service (awsvpc mode only)
+resource "aws_security_group" "default" {
+  count       = var.task_definition.network_mode == "awsvpc" ? 1 : 0
+  description = format("%s ECS service", var.name)
+  name        = var.name
+  vpc_id      = data.aws_subnet.selected[0].vpc_id
+
+  tags = local.tags
+
+  lifecycle {
+    ignore_changes = [description]
+  }
+}
+
 # Allow outbound traffic from the LB to the containers
 resource "aws_security_group_rule" "lb_out" {
   count       = var.task_definition.network_mode == "awsvpc" && var.load_balancer != null ? 1 : 0
@@ -17,20 +31,6 @@ resource "aws_security_group_rule" "lb_out" {
   security_group_id = local.lb_sg_id
 
   source_security_group_id = aws_security_group.default[0].id
-}
-
-# Default security group for the ECS service (awsvpc mode only)
-resource "aws_security_group" "default" {
-  count       = var.task_definition.network_mode == "awsvpc" ? 1 : 0
-  description = format("%s ECS service", var.name)
-  name        = var.name
-  vpc_id      = data.aws_subnet.selected[0].vpc_id
-
-  tags = merge({ Name = var.name }, var.tags)
-
-  lifecycle {
-    ignore_changes = [description]
-  }
 }
 
 # Allow the containers to receive traffic from the LB

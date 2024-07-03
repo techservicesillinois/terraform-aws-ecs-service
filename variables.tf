@@ -76,6 +76,12 @@ variable "desired_count" {
   default     = 1
 }
 
+variable "force_new_deployment" {
+  description = "Enable forcing a new task deployment of the service"
+  type        = bool
+  default     = false
+}
+
 variable "health_check" {
   description = "Health check block"
   type = object({
@@ -198,6 +204,17 @@ variable "platform_version" {
   default     = null
 }
 
+variable "propagate_tags" {
+  description = "Whether to propagate the tags from the task definition or the service to the tasks"
+  type        = string
+  default     = "TASK_DEFINITION"
+
+  validation {
+    condition     = try(contains(["NONE", "SERVICE", "TASK_DEFINITION"], var.propagate_tags), true)
+    error_message = "The 'propagate_tags' value is not one of the valid values 'NONE', 'SERVICE', or 'TASK_DEFINITION'."
+  }
+}
+
 variable "service_discovery" {
   description = "Service discovery block"
   type = object({
@@ -219,8 +236,10 @@ variable "service_discovery" {
   default = null
 }
 
-# FIXME: Confirm whether the below is still true, and consider converting to object.
-# The `stickiness` argument MUST have a default; Terraform will fail if not defined.
+# FIXME: Confirm whether the below statement is still true, and
+# consider converting to object.
+# The `stickiness` argument MUST have a default; Terraform will fail
+# if not defined.
 variable "stickiness" {
 
   description = "If specified, the [`stickiness`](#stickiness) block causes the load balancer to bind client requests to the same target. Valid only with application load balancers. Not valid without an application load balancer."
