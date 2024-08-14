@@ -234,7 +234,6 @@ An `autoscale` block is a nested data structure that defines whether the contain
     metrics = {
       CPUUtilization = {
         adjustment_type         = "ChangeInCapacity"
-        cooldown                = 60
         datapoints_to_alarm     = 1
         evaluation_periods      = 1
         metric_aggregation_type = "Average"
@@ -243,6 +242,7 @@ An `autoscale` block is a nested data structure that defines whether the contain
 
         down = {
           comparison_operator         = "LessThanThreshold"
+          cooldown                    = 180
           metric_interval_upper_bound = 0
           scaling_adjustment          = -1
           threshold                   = 40
@@ -250,6 +250,7 @@ An `autoscale` block is a nested data structure that defines whether the contain
 
         up = {
           comparison_operator         = "GreaterThanOrEqualToThreshold"
+          cooldown                    = 60
           metric_interval_lower_bound = 1
           scaling_adjustment          = 1
           threshold                   = 70
@@ -276,8 +277,6 @@ Each autoscaling `metrics` sub-object allows specifying the following arguments:
 
 * `adjustment_type` - (Required) Whether the adjustment is an absolute number or a percentage of the current capacity.
 
-* `cooldown` - (Required) Amount of time, in seconds, after a scaling activity completes and before the next scaling activity can start.
-
 * `datapoints_to_alarm` -  - (Optional) The number of datapoints that must be breaching the threshold to trigger the alarm.
 
 * `evaluation_periods` - (Required) The number of periods over which data is compared to the specified threshold.
@@ -298,6 +297,8 @@ Each autoscaling `metrics` sub-object allows specifying the following arguments:
 The `autoscale.metrics.down` and `autoscale.metrics.up` sub-objects use the same input variables, albeit for scaling down and scaling up, respectively.
 
 * `comparison_operator` - (Required) The arithmetic operation to use when comparing the statistic and threshold.
+
+* `cooldown` - (Optional) Amount of time, in seconds, after a scaling activity completes and before the next scaling activity can start.
 
 * `metric_interval_lower_bound` - (Optional) Lower bound for the difference between the alarm threshold and the CloudWatch metric. Without a value, AWS will treat this bound as negative infinity.
 

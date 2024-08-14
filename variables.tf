@@ -23,7 +23,6 @@ variable "autoscale" {
       object({
         actions_enabled         = optional(bool, true)
         adjustment_type         = string
-        cooldown                = optional(number, null)
         datapoints_to_alarm     = optional(number, null)
         evaluation_periods      = number
         metric_aggregation_type = string
@@ -32,6 +31,7 @@ variable "autoscale" {
         # TODO: Validate that either lower or upper bound are non-null.
         down = object({
           comparison_operator         = string
+          cooldown                    = optional(number, null)
           metric_interval_lower_bound = optional(number, null)
           metric_interval_upper_bound = optional(number, null)
           scaling_adjustment          = number
@@ -40,6 +40,7 @@ variable "autoscale" {
         # TODO: Validate that either lower or upper bound are non-null.
         up = object({
           comparison_operator         = string
+          cooldown                    = optional(number, null)
           metric_interval_lower_bound = optional(number, null)
           metric_interval_upper_bound = optional(number, null)
           scaling_adjustment          = number
