@@ -33,7 +33,7 @@ resource "aws_cloudwatch_metric_alarm" "down" {
   namespace           = "AWS/ECS"
   period              = each.value.period
   statistic           = each.value.statistic
-  tags                = merge({ Name = var.name }, var.tags)
+  tags                = local.tags
   threshold           = each.value.down.threshold
 
   dimensions = {
@@ -58,7 +58,7 @@ resource "aws_cloudwatch_metric_alarm" "up" {
   namespace           = "AWS/ECS"
   period              = each.value.period
   statistic           = each.value.statistic
-  tags                = merge({ Name = var.name }, var.tags)
+  tags                = local.tags
   threshold           = each.value.up.threshold
 
   dimensions = {
@@ -79,7 +79,7 @@ resource "aws_appautoscaling_policy" "down" {
 
   step_scaling_policy_configuration {
     adjustment_type         = each.value.adjustment_type
-    cooldown                = each.value.cooldown
+    cooldown                = each.value.down.cooldown
     metric_aggregation_type = each.value.metric_aggregation_type
 
     step_adjustment {
@@ -102,7 +102,7 @@ resource "aws_appautoscaling_policy" "up" {
 
   step_scaling_policy_configuration {
     adjustment_type         = each.value.adjustment_type
-    cooldown                = each.value.cooldown
+    cooldown                = each.value.up.cooldown
     metric_aggregation_type = each.value.metric_aggregation_type
 
     step_adjustment {
