@@ -556,22 +556,30 @@ This block itself is optional. However, if the block is defined by the caller, *
 
 * `registry_id` - (Required) The registry ID is the AWS account number which owns the repository to be pulled at the time the service's ECS task is launched.
 
+* `splunk_index` - (Optional) The Splunk index to which logs should be written.
+Only used when `containers.json.tftpl` is configured to use the AWS Splunk log driver.
+
 ### Notes on the `container_definition_file` argument
 
 If the `task_definition` block is defined, and its `template_variables` block is populated, this module runs the Terraform [`templatefile()`](https://developer.hashicorp.com/terraform/language/functions/templatefile) function on the file named in the `container_definition_file` argument. By default, the file name is `containers.json.tftmpl`, but it can be overriden by the user.
 The output from the template's rendering is passed to the task definition.
 
 The use of template variables helps make the Terraform configuration DRY by eliminating the need for manual editing – such as during the promotion of services from test to production accounts.
-The example below shows how template variables `docker_tag`, `region`, and `registry_id` are passed to the task definition when template rendering is requested by the caller using the `template_variables` block and an appropriately-configured `containers.json.tftmpl` file.
 
-### A `containers.json.tftmpl` file supports template rendering
+In order to expand template variables, the following conditions must be met:
 
-This example uses all of the supported template variables. The construct `${variable_name}` to expand a supported template variable.
+* The Terraform configuration must include a `template_variables` wherein the values of each template variable are defined. Such variables are passed into the task definition at deployment time.
+* A `containers.json.tftpl` file must exist, and should reference each of the template variables referred to in the Terraform configuration.
+The construct `${variable_name}` is used to expand a supported template variable inside the `containers.json.tftpl` file.
+
+### Example `containers.json.tftpl` file using the AWS log driver
+
+This example shows the pertinent parts of the `containers.json.tftpl` file when using the default AWS log driver. The three required template variables – `docker_tag`, `region`, and `registry_id` – are expanded and passed to the task definition.
 
 ```json
 [
   {
-    "name": "daemon",
+    "name": "foobar",
     "image": "${registry_id}.dkr.ecr.${region}.amazonaws.com/foobar:${docker_tag}",
     "logConfiguration": {
        "logDriver": "awslogs",
@@ -585,9 +593,42 @@ This example uses all of the supported template variables. The construct `${vari
 ]
 ```
 
-If a container definition is needed without the templating capability of this module, omit  the `template_variables` block of the `task_definition` block. The default file name is `containers.json`, which can be overriden by the user. In this case, the container definition is passed in to the task definition verbatim, as in the following example.
+### Example `containers.json.tftpl` file using the Splunk log driver
+This example shows the pertinent parts of the `containers.json.tftpl` file when using the Splunk log driver. Note that the three required template variables – `docker_tag`, `region`, and `registry_id` – are required as with the previous example that uses the AWS log driver.
 
-### A `containers.json` file does not support template rendering
+However, this example adds the `splunk_index` variable for expansion and passing the task definition.
+
+Note that this example uses [AWS Systems Manager Parameter Store](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html) to securely pass the Splunk token to the task at runtime. The Splunk token is a credential, and should thus not appear in the Terraform configuration.
+
+```json
+[
+  {
+    "name": "foobar",
+    "image": "${registry_id}.dkr.ecr.${region}.amazonaws.com/foobar:${docker_tag}",
+    "logConfiguration": {
+        "logDriver": "splunk",
+        "options": {
+            "splunk-url": "https://my-splunk-account.splunkcloud.com",
+            "splunk-index": "${splunk_index}",
+            "splunk-source": "pipeline-general",
+            "splunk-format": "json",
+            "splunk-gzip": "true"
+            },
+        "secretOptions": [
+            {
+            "name": "splunk-token",
+            "valueFrom": "/service/foobar/splunk/hec_token"
+            }
+        ]
+  }
+]
+```
+
+### Example `containers.json` file (no support for template rendering)
+
+The following example depicts the "legacy" `containers.json` format which doesn't support template variables. This might be used in cases where a Docker image does *not* need to be pulled from Amazon ECR. In this type of use case, it may not be necessary to specify the registry_id, region, or docker tag.
+
+Simply omit the `template_variables` block inside the `task_definition` block, and using the default file name of `containers.json`. (The name can be overriden by the user.) In this case, the container definition is simply passed in to the task definition without template expansion.
 
 ```json
 [
@@ -601,7 +642,6 @@ If a container definition is needed without the templating capability of this mo
     ]
   }
 ]
-
 ```
 
 `volume`
