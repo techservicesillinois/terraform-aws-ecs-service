@@ -268,9 +268,10 @@ variable "task_definition" {
     network_mode              = optional(string, "awsvpc") # Normal use case.
     task_role_arn             = optional(string)
     template_variables = optional(object({
-      docker_tag  = string
-      region      = string
-      registry_id = string
+      docker_tag   = string
+      region       = string
+      registry_id  = string
+      splunk_index = optional(string)
     }))
   })
   default = null
