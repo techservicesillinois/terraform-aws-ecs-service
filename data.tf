@@ -17,7 +17,7 @@ locals {
 # Look up matching subnets.
 
 module "get-subnets" {
-  source = "github.com/techservicesillinois/terraform-aws-util//modules/get-subnets?ref=v3.0.4"
+  source = "github.com/techservicesillinois/terraform-aws-util//modules/get-subnets?ref=v3.0.5"
 
   count       = local.do_subnet_lookup ? 1 : 0
   subnet_type = var.network_configuration.subnet_type
