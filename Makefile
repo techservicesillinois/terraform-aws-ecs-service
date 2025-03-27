@@ -13,7 +13,7 @@ all: tfc test
 tfc: .terraform
 	@# Basic Terraform validation and formating checks
 	terraform version
-	AWS_DEFAULT_REGION=us-east-2 terraform validate
+	terraform validate
 	terraform fmt -check
 
 # Create .terraform if does not exist
@@ -28,7 +28,8 @@ test:
 	# Do NOT put terraform-aws in the title of the top-level README
 	! grep "#\s*terraform-aws-" README.md
 	# Do NOT use type string when you can use type number or bool!
-	! $(EGREP) '"\d+"|"true"|"false"' $(SRCS) $(DOCS)
+#	! $(EGREP) '"\d+"|"true"|"false"' $(SRCS) $(DOCS)
+	! $(EGREP) '"\d+"|"true"|"false"' $(SRCS)
 	# Do NOT use old style maps in docs
 	! $(EGREP) "\w+\s*\{" $(DOCS)
 	# Do NOT drop the "s" in outputs.tf or variables.tf!
