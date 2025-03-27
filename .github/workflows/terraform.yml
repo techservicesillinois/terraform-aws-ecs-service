@@ -4,6 +4,9 @@ name: terraform
 
 on:
   push:
+#   branches:
+#     - master
+  pull_request:
 
 jobs:
   terraform:
@@ -17,7 +20,10 @@ jobs:
 
       - name: terraform setup
         uses: hashicorp/setup-terraform@v3
+      #   cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
       - name: run make
+      # env:
+      #   TOKEN: ${{ secrets.TOKEN }}
         run: |
           make all
