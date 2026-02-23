@@ -266,7 +266,11 @@ variable "task_definition" {
     cpu                       = optional(number)           # Required for Fargate.
     memory                    = optional(number)           # Required for Fargate.
     network_mode              = optional(string, "awsvpc") # Normal use case.
-    task_role_arn             = optional(string)
+    runtime_platform = optional(object({
+      cpu_architecture        = optional(string)
+      operating_system_family = optional(string)
+    }))
+    task_role_arn = optional(string)
     template_variables = optional(object({
       docker_tag   = string
       region       = string
