@@ -187,6 +187,8 @@ supported for other network modes.
 
 * `propagate_tags` - (Optional) Whether to propagate the tags from the task definition or the service to the tasks. May contain values `NONE`, `SERVICE`, `TASK_DEFINITION`. The default is `TASK_DEFINITION`.
 
+* `runtime_platform` – (Optional) Configuration block used to configure the runtime platform used by containers in your task.
+
 * `service_discovery` - (Optional) A [service discovery](#service_discovery) block.
 This parameter is used to configure
 [Amazon Service Discovery](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-discovery.html) for the service.
@@ -454,6 +456,16 @@ EC2 Container Service Developer Guide.](https://docs.aws.amazon.com/AmazonECS/la
 this time are `memberOf` and `distinctInstance`.
 
 > NOTE: `placement_constraints` is not supported when `launch_type` is FARGATE.
+
+
+`runtime_platform`
+-----------------
+
+A `runtime_platform` block supports the following:
+
+* `operating_system_family` - (Optional) If the `requires_compatibilities` is `FARGATE` this field is required, and must be set to a valid option from the operating system family in the runtime platform setting. [operating system family in the runtime platform](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#runtime-platform)
+
+* `cpu_architecture` - (Optional) Must be set to either `X86_64` or `ARM64`. See [Runtime platform](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#runtime-platform) for details.
 
 `service_discovery`
 -----------------
