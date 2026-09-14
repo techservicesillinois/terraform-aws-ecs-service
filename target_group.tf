@@ -11,7 +11,7 @@ resource "aws_lb_target_group" "default" {
   deregistration_delay = var.load_balancer.deregistration_delay
   name                 = var.name
   port                 = var.load_balancer.container_port
-  protocol             = "HTTP" # The path between the LB and containers is trusted.
+  protocol             = var.load_balancer.protocol
   target_type          = var.task_definition.network_mode == "awsvpc" ? "ip" : "instance"
   tags                 = local.tags
   vpc_id               = one(data.aws_lb.selected.*.vpc_id)

@@ -335,7 +335,7 @@ Valid values are either ports 1-65536, or `container_port`. Defaults
 to `container_port`.
 
 * `protocol` - (Optional) The protocol to use to connect with the
-target. Defaults to HTTP.
+target. Defaults to HTTP, and may be HTTP or HTTPS.
 
 * `timeout` - (Optional) The amount of time, in seconds, during which
 no response means a failed health check.
@@ -392,6 +392,8 @@ Defaults to `*`.
 * `port` - (Optional) The port of the listener. Defaults to 443.
 
 * `priority` - (Optional) The priority for the rule between 1 and 50000. Leaving it unset will automatically set the rule with next available priority after currently existing highest rule. A listener can't have multiple rules with the same priority.
+
+* `protocol` - (Optional) The protocol to use to connect with the target. Defaults to HTTP, and may be HTTP or HTTPS.
 
 * `security_group_id` - (Optional) The security group ARN associated with the lLoad lalancer. If not specified it is looked up by the load balancer's name.
 
