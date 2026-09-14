@@ -128,6 +128,7 @@ variable "load_balancer" {
     path_pattern                = optional(string, "*")
     port                        = optional(number, 443)
     priority                    = optional(number)
+    protocol                    = optional(string, "HTTP")
     security_group_id           = optional(string)
   })
   default = null
@@ -145,6 +146,11 @@ variable "load_balancer" {
     # condition     = var.load_balancer == null || try(var.load_balancer.priority > 0 && var.load_balancer.priority < 50000, true)
     condition     = try(var.load_balancer.priority > 0 && var.load_balancer.priority < 50000, true)
     error_message = "If specified, priority must be in range 1 to 50000."
+  }
+
+  validation {
+    condition     = try(contains(["HTTP", "HTTPS"], var.load_balancer.protocol), true)
+    error_message = "If specified, protocol must have one of the valid values 'HTTP' or 'HTTPS'."
   }
 }
 
